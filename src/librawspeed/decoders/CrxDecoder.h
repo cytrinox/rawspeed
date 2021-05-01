@@ -61,7 +61,7 @@ class CrxDecoder final : public RawDecoder {
   uint32_t raw_width = 0;
   uint32_t raw_height = 0;
   Buffer imageData;
-  uint32_t bpp = 0;
+  uint32_t bpp = 2;
   //uint32_t packed = 0;
   std::array<float, 4> wb_coeffs = {{NAN, NAN, NAN, NAN}};
 

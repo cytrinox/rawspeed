@@ -241,7 +241,13 @@ std::vector<BmffBox> BmffBox::parse(const DataBuffer &buf, uint32_t file_offset)
 
 class CameraMetaData;
 
-CrxDecoder::CrxDecoder(const Buffer* file) : RawDecoder(file) { parseHeader(); }
+CrxDecoder::CrxDecoder(const Buffer* file) : RawDecoder(file) {
+
+    //this->mRaw = RawImageDataU16();
+
+  parseHeader();
+
+   }
 
 int CrxDecoder::isCrx(const Buffer* input) {
   static const std::array<char, 8> magic = {{'f', 't', 'y', 'p', 'c', 'r', 'x', ' '}};
@@ -253,15 +259,16 @@ void CrxDecoder::parseHeader() {
   if (!isCrx(mFile))
     ThrowRDE("This isn't actually a Crx file, why are you calling me?");
 
-
+/*
       raw_height = 5464; // CCD Size Y
       raw_width = 8192;  // CCD Size X
       bpp = 14;
+      */
 
-  wb_coeffs[0] = 1;
-  wb_coeffs[1] = 1;
-  wb_coeffs[2] = 1;
-  wb_coeffs[3] = 1;
+  wb_coeffs[0] = 0.003;
+  wb_coeffs[1] = 0.003;
+  wb_coeffs[2] = 0.003;
+  wb_coeffs[3] = 0.003;
 
   auto inbuf = DataBuffer(*mFile, Endianness::big);
 
@@ -532,11 +539,16 @@ if(stsz_size == 0) {
 
   mRaw->dim = iPoint2D(raw_width, raw_height);
   mRaw->setCpp(1);
+
+  printf("bbp: %d\nwidth: %d\nheight: %d\n", mRaw->getBpp(), raw_width, raw_height);
+
+
+
   mRaw->isCFA = true;
   mRaw->cfa.setCFA(iPoint2D(2,2), CFA_RED, CFA_GREEN, CFA_GREEN, CFA_BLUE); // TODO sRaw has other CFA!
-
   mRaw->createData();
 
+assert(mRaw->getBpp() == 2);
 
   rawspeed::DataBuffer file_buf  = DataBuffer(*mFile, Endianness::big);
 
@@ -553,12 +565,17 @@ if(stsz_size == 0) {
 
   conv.crxLoadRaw((int16_t*)mRaw->getData());
 
+
+uint16_t *buf = (uint16_t*)mRaw->getData();
+  for(int i = 0; i < mRaw->dim.x * mRaw->dim.y; ++i) {
+
+    buf[i] = buf[i] << 8 | buf[i] >> 8;
+  }
+
+
   FileWriter finalWriter("/tmp/final.bin");
-  auto xbuf = Buffer(mRaw->getData(), mRaw->dim.x * mRaw->dim.y);
+  auto xbuf = Buffer(mRaw->getData(), mRaw->dim.x * mRaw->dim.y * sizeof(uint16_t));
   finalWriter.writeFile(&xbuf, xbuf.getSize());
-
-
-
   /*
 
   std::ifstream file("/home/cytrinox/code/hd00_crx.bin", std::ios::binary | std::ios::ate);
