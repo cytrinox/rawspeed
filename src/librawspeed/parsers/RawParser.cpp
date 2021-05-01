@@ -21,6 +21,7 @@
 
 #include "parsers/RawParser.h"
 #include "decoders/MrwDecoder.h"          // for MrwDecoder
+#include "decoders/CrxDecoder.h"          // for CrxDecoder
 #include "decoders/NakedDecoder.h"        // for NakedDecoder
 #include "decoders/RafDecoder.h"          // for RafDecoder
 #include "decoders/RawDecoder.h"          // for RawDecoder
@@ -49,6 +50,13 @@ std::unique_ptr<RawDecoder> RawParser::getDecoder(const CameraMetaData* meta) {
   if (MrwDecoder::isMRW(mInput)) {
     try {
       return std::make_unique<MrwDecoder>(mInput);
+    } catch (RawDecoderException &) {
+    }
+  }
+
+  if (CrxDecoder::isCrx(mInput)) {
+    try {
+      return std::make_unique<CrxDecoder>(mInput);
     } catch (RawDecoderException &) {
     }
   }

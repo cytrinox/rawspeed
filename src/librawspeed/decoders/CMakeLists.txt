@@ -1,4 +1,6 @@
 FILE(GLOB SOURCES
+  "AbstractBmffDecoder.cpp"
+  "AbstractBmffDecoder.h"
   "AbstractTiffDecoder.cpp"
   "AbstractTiffDecoder.h"
   "ArwDecoder.cpp"
@@ -7,6 +9,8 @@ FILE(GLOB SOURCES
   "Cr2Decoder.h"
   "CrwDecoder.cpp"
   "CrwDecoder.h"
+  "CrxDecoder.cpp"
+  "CrxDecoder.h"
   "DcrDecoder.cpp"
   "DcrDecoder.h"
   "DcsDecoder.cpp"

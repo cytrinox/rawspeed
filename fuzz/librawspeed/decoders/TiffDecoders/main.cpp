@@ -25,6 +25,7 @@
 #include "common/RawspeedException.h" // for RawspeedException
 #include "decoders/ArwDecoder.h"      // IWYU pragma: keep
 #include "decoders/Cr2Decoder.h"      // IWYU pragma: keep
+#include "decoders/CrxDecoder.h"      // IWYU pragma: keep
 #include "decoders/DcrDecoder.h"      // IWYU pragma: keep
 #include "decoders/DcsDecoder.h"      // IWYU pragma: keep
 #include "decoders/DngDecoder.h"      // IWYU pragma: keep
