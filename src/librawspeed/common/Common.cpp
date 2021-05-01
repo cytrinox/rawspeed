@@ -22,7 +22,7 @@
 #include <cstdarg> // for va_end, va_list, va_start
 #include <cstdio>  // for printf, vprintf
 
-// #define _DEBUG
+#define _DEBUG
 
 namespace rawspeed {
 
