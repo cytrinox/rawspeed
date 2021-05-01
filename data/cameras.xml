@@ -1160,6 +1160,18 @@
 			<Hint name="wb_offset" value="142"/>
 		</Hints>
 	</Camera>
+	<Camera make="Canon" model="Canon EOS M50">
+		<ID make="Canon" model="EOS M50">Canon EOS M50</ID>
+		<CFA width="2" height="2">
+			<Color x="0" y="0">RED</Color>
+			<Color x="1" y="0">GREEN</Color>
+			<Color x="0" y="1">GREEN</Color>
+			<Color x="1" y="1">BLUE</Color>
+		</CFA>
+		<Hints>
+			<Hint name="wb_offset" value="142"/>
+		</Hints>
+	</Camera>
 	<Camera make="Canon" model="Canon EOS M6">
 		<ID make="Canon" model="EOS M6">Canon EOS M6</ID>
 		<CFA width="2" height="2">
@@ -1449,6 +1461,28 @@
 			<Hint name="sraw_new" value=""/>
 			<Hint name="invert_sraw_wb" value=""/>
 		</Hints>
+	</Camera>
+<Camera make="Canon" model="Canon EOS R5">
+		<ID make="Canon" model="EOS R5">Canon EOS R5</ID>
+		<CFA width="2" height="2">
+			<Color x="0" y="0">RED</Color>
+			<Color x="1" y="0">GREEN</Color>
+			<Color x="0" y="1">GREEN</Color>
+			<Color x="1" y="1">BLUE</Color>
+		</CFA>
+		<!--
+		<Crop x="144" y="112" width="8192" height="5464"/>
+		<Sensor black="2049" white="14448"/>
+		<Sensor black="513" white="14008" iso_list="50 100 125"/>
+		<Sensor black="512" white="10838" iso_list="160"/>
+		<Sensor black="512" white="14448" iso_list="200 250"/>
+		<Sensor black="2048" white="10838" iso_list="320 640 1250 2500 5000 10000 20000"/>
+		<Sensor black="2049" white="13533" iso_list="102400"/>
+		<BlackAreas>
+			<Vertical x="0" width="134"/>
+			<Horizontal y="0" height="40"/>
+		</BlackAreas>
+		-->
 	</Camera>
 	<Camera make="Canon" model="Canon PowerShot Pro1">
 		<ID make="Canon" model="PowerShot Pro1">Canon PowerShot Pro1</ID>
