@@ -547,12 +547,11 @@ if(stsz_size == 0) {
 
 
 
-
-
-
-  mRaw->isCFA = true;
-  mRaw->cfa.setCFA(iPoint2D(2,2), CFA_RED, CFA_GREEN, CFA_GREEN, CFA_BLUE); // TODO sRaw has other CFA!
+  //mRaw->isCFA = true;
+  //mRaw->cfa.setCFA(iPoint2D(2,2), CFA_RED, CFA_GREEN, CFA_GREEN, CFA_BLUE); // TODO sRaw has other CFA!
+  //mRaw->cfa.setCFA(iPoint2D(2,2), CFA_BLUE, CFA_GREEN, CFA_GREEN, CFA_RED); // TODO sRaw has other CFA!
   mRaw->createData();
+  //mRaw->cfa.setCFA(iPoint2D(2,2), CFA_BLUE, CFA_GREEN, CFA_GREEN, CFA_RED); // TODO sRaw has other CFA!
 
   printf("bbp: %d\nwidth: %d\nheight: %d\npitch: %d\npadding: %d\n", mRaw->getBpp(), raw_width, raw_height, mRaw->pitch, mRaw->padding);
 
@@ -580,10 +579,13 @@ assert(mRaw->getBpp() == 2);
 
 
 uint16_t *buf = (uint16_t*)librawBuf;
+
+/*
   for(int i = 0; i < mRaw->dim.x * mRaw->dim.y; ++i) {
 
     buf[i] = buf[i] << 8 | buf[i] >> 8;
   }
+  */
 
   uint16_t *rawspeedBuf = (uint16_t*)mRaw->getData();
 
@@ -677,6 +679,8 @@ void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
   auto id = rootIFD->getID();
   setMetaData(meta, id.make, id.model, "", iso);
   */
+
+
 
   if (hints.has("swapped_wb")) {
     mRaw->metadata.wbCoeffs[0] = wb_coeffs[2];
