@@ -1470,19 +1470,23 @@
 			<Color x="0" y="1">GREEN</Color>
 			<Color x="1" y="1">BLUE</Color>
 		</CFA>
+		<Crop x="160" y="122" width="0" height="0"/>
+		<Sensor black="511" white="16384"/>
+		<Sensor black="511" white="16384" iso_list="100"/>
+
 		<!--
-		<Crop x="144" y="112" width="8192" height="5464"/>
-		<Sensor black="2049" white="14448"/>
 		<Sensor black="513" white="14008" iso_list="50 100 125"/>
+
 		<Sensor black="512" white="10838" iso_list="160"/>
 		<Sensor black="512" white="14448" iso_list="200 250"/>
 		<Sensor black="2048" white="10838" iso_list="320 640 1250 2500 5000 10000 20000"/>
 		<Sensor black="2049" white="13533" iso_list="102400"/>
-		<BlackAreas>
-			<Vertical x="0" width="134"/>
-			<Horizontal y="0" height="40"/>
-		</BlackAreas>
 		-->
+		<BlackAreas>
+			<Vertical x="0" width="160"/>
+			<Horizontal y="0" height="122"/>
+		</BlackAreas>
+
 	</Camera>
 	<Camera make="Canon" model="Canon PowerShot Pro1">
 		<ID make="Canon" model="PowerShot Pro1">Canon PowerShot Pro1</ID>

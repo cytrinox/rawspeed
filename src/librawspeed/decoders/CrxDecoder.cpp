@@ -270,6 +270,9 @@ void CrxDecoder::parseHeader() {
   wb_coeffs[2] = 0.003;
   wb_coeffs[3] = 0.003;
 
+  mRaw->metadata.make = "Canon";
+  mRaw->metadata.model = "Canon EOS R5"; // FIXME for others
+
   auto inbuf = DataBuffer(*mFile, Endianness::big);
 
 
@@ -540,7 +543,10 @@ if(stsz_size == 0) {
   mRaw->dim = iPoint2D(raw_width, raw_height);
   mRaw->setCpp(1);
 
-  printf("bbp: %d\nwidth: %d\nheight: %d\n", mRaw->getBpp(), raw_width, raw_height);
+  //mRaw->pitch = raw_width * sizeof(uint16_t);
+
+
+
 
 
 
@@ -548,7 +554,11 @@ if(stsz_size == 0) {
   mRaw->cfa.setCFA(iPoint2D(2,2), CFA_RED, CFA_GREEN, CFA_GREEN, CFA_BLUE); // TODO sRaw has other CFA!
   mRaw->createData();
 
+  printf("bbp: %d\nwidth: %d\nheight: %d\npitch: %d\npadding: %d\n", mRaw->getBpp(), raw_width, raw_height, mRaw->pitch, mRaw->padding);
+
 assert(mRaw->getBpp() == 2);
+
+//assert(mRaw->pitch == raw_width * sizeof(uint16_t));
 
   rawspeed::DataBuffer file_buf  = DataBuffer(*mFile, Endianness::big);
 
@@ -563,18 +573,38 @@ assert(mRaw->getBpp() == 2);
     mdat_box.offset,
     mdat_box.size);
 
-  conv.crxLoadRaw((int16_t*)mRaw->getData());
+  void *librawBuf = calloc(raw_height*raw_width, sizeof(uint16_t));
+
+  //conv.crxLoadRaw((int16_t*)mRaw->getData());
+  conv.crxLoadRaw((int16_t*)librawBuf);
 
 
-uint16_t *buf = (uint16_t*)mRaw->getData();
+uint16_t *buf = (uint16_t*)librawBuf;
   for(int i = 0; i < mRaw->dim.x * mRaw->dim.y; ++i) {
 
     buf[i] = buf[i] << 8 | buf[i] >> 8;
   }
 
+  uint16_t *rawspeedBuf = (uint16_t*)mRaw->getData();
+
+  // convert libraw buf to rawspeed buf with padding/alignment on 16 byte boundary
+  for(int line = 0; line < raw_height; ++line) {
+    for(int w = 0; w < raw_width; ++w) {
+      uint16_t* dest = (uint16_t*)mRaw->getDataUncropped(w, line);
+      *dest = buf[(line*raw_width)+w];
+      //rawspeedBuf[(line*(mRaw->pitch / mRaw->getBpp()))+w] = buf[(line*raw_width)+w];
+    }
+
+  }
+
+  free(librawBuf);
+
+
+    mRaw->calculateBlackAreas();
+
 
   FileWriter finalWriter("/tmp/final.bin");
-  auto xbuf = Buffer(mRaw->getData(), mRaw->dim.x * mRaw->dim.y * sizeof(uint16_t));
+  auto xbuf = Buffer(mRaw->getData(), mRaw->dim.y * (mRaw->pitch/2) * sizeof(uint16_t));
   finalWriter.writeFile(&xbuf, xbuf.getSize());
   /*
 
@@ -637,7 +667,7 @@ void CrxDecoder::checkSupportInternal(const CameraMetaData* meta) {
 
 void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
   //Default
-  int iso = 0;
+  int iso = 100;
 
 
 /*
@@ -657,6 +687,15 @@ void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
     mRaw->metadata.wbCoeffs[1] = wb_coeffs[1];
     mRaw->metadata.wbCoeffs[2] = wb_coeffs[3];
   }
+  //assert(1==2);
+
+    mRaw->metadata.wbCoeffs[0] = 1.8515625;
+    mRaw->metadata.wbCoeffs[1] = 1.0;
+    mRaw->metadata.wbCoeffs[2] = 1.573242188;
+
+
+
+  setMetaData(meta, "Canon", "Canon EOS R5", "");
 }
 
 #define TAG_HDR_SIZE (4+4) // length + type
