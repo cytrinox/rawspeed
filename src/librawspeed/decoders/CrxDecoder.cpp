@@ -693,9 +693,15 @@ void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
   }
   //assert(1==2);
 
+  /*
     mRaw->metadata.wbCoeffs[0] = 1.8515625;
     mRaw->metadata.wbCoeffs[1] = 1.0;
     mRaw->metadata.wbCoeffs[2] = 1.573242188;
+  */  
+
+    mRaw->metadata.wbCoeffs[2] = 1.83203;
+    mRaw->metadata.wbCoeffs[1] = 1.0;
+    mRaw->metadata.wbCoeffs[0] = 1.92871;
 
     //mRaw->whitePoint = (1UL << 14) - 1UL; // TODO check? not needed...
 
