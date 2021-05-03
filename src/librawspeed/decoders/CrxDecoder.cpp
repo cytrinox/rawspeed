@@ -21,6 +21,7 @@
 */
 
 #include "decoders/CrxDecoder.h"
+#include "decoders/SimpleTiffDecoder.h"
 #include "common/Point.h"                           // for iPoint2D
 #include "decoders/RawDecoderException.h"           // for ThrowRDE
 #include "decompressors/UncompressedDecompressor.h" // for UncompressedDeco...
@@ -290,6 +291,60 @@ void CrxDecoder::parseHeader() {
     uuid: std::array<uint8_t, 16>(),
   });
 
+
+  auto cmt1 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT1');
+  auto cmt2 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT2');
+  auto cmt3 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT3');
+  auto cmt4 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT4');
+
+
+  FileWriter cmt1_f("/tmp/test2.cmt1");
+  cmt1_f.writeFile(&cmt1.payload, cmt1.payload.getSize());
+
+  FileWriter cmt2_f("/tmp/test2.cmt2");
+  cmt2_f.writeFile(&cmt2.payload, cmt2.payload.getSize());
+
+  FileWriter cmt3_f("/tmp/test2.cmt3");
+  cmt3_f.writeFile(&cmt3.payload, cmt3.payload.getSize());
+
+  FileWriter cmt4_f("/tmp/test4.cmt4");
+  cmt4_f.writeFile(&cmt4.payload, cmt4.payload.getSize());
+
+
+
+  //SimpleTiffDecoder(TiffRootIFDOwner&& root, const Buffer* file)
+
+  TiffRootIFDOwner root;
+
+  //SimpleTiffDecoder tiff_dec(root, &cmt1.payload);
+
+  NORangesSet<Buffer> rs;
+
+  // TODO: detect endianess from file
+  DataBuffer cmt1_buf = DataBuffer(cmt1.payload.getSubView(0, cmt1.payload.getSize()), Endianness::little);
+  DataBuffer cmt2_buf = DataBuffer(cmt2.payload.getSubView(0, cmt2.payload.getSize()), Endianness::little);
+  DataBuffer cmt3_buf = DataBuffer(cmt3.payload.getSubView(0, cmt3.payload.getSize()), Endianness::little);
+  DataBuffer cmt4_buf = DataBuffer(cmt4.payload.getSubView(0, cmt4.payload.getSize()), Endianness::little);
+
+  //TiffRootIFD IFD0(nullptr, &rs, inbuf, cmt1.offset+8); // BMFF type + size
+  TiffRootIFD IFD0_cmp1(nullptr, &rs, cmt1_buf, 8); // TODO: skip TIFF header
+  TiffRootIFD IFD0_cmp2(nullptr, &rs, cmt2_buf, 8); // TODO: skip TIFF header
+  TiffRootIFD IFD0_cmp3(nullptr, &rs, cmt3_buf, 8); // TODO: skip TIFF header
+  TiffRootIFD IFD0_cmp4(nullptr, &rs, cmt4_buf, 8); // TODO: skip TIFF header
+  //TiffIFD IFD0(nullptr, &rs, cmt1.payload, 8); // BMFF type + size
+
+  //TiffRootIFD IFD(&IFD0, &rs, inbuf, cmt2.offset+8); // BMFF type + size
+
+  auto id = IFD0_cmp1.getID();
+  printf("EXIF-MAKE: %s\n", id.make.c_str());
+  printf("EXIF-MODEL: %s\n", id.model.c_str());
+
+  int iso = 0;
+
+  if (IFD0_cmp2.hasEntryRecursive(ISOSPEEDRATINGS))
+    iso = IFD0_cmp2.getEntryRecursive(ISOSPEEDRATINGS)->getU32();
+
+  printf("EXIF-ISO: %d\n", iso);
 
   //thmb.payload.begin(), th
 
