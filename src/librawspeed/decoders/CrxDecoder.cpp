@@ -34,6 +34,7 @@
 #include <cassert>                                  // for assert
 #include <cstring>                                  // for memcmp
 #include <memory>                                   // for unique_ptr
+#include <map>
 
 
 #include "io/FileWriter.h"                           // for ByteStream // FIXME remove me
@@ -242,6 +243,24 @@ std::vector<BmffBox> BmffBox::parse(const DataBuffer &buf, uint32_t file_offset)
 
 class CameraMetaData;
 
+
+
+std::map<int16_t, Buffer> split_ctmd_records(DataBuffer ctmd) {
+  std::map<int16_t, Buffer> recs;
+
+  for(uint32_t i = 0; i < ctmd.getSize();) {
+    uint32_t rec_len = ctmd.get<uint32_t>(i);
+    int16_t rec_typ = ctmd.get<int16_t>(i+4); // skip len
+    Buffer rec_payload = ctmd.getSubView(i+12, rec_len-12);
+    recs[rec_typ] = rec_payload;
+    printf("CTMD rec type: %d extracted\n", rec_typ);
+    i += rec_len;
+  }
+
+  return recs;
+}
+
+
 CrxDecoder::CrxDecoder(const Buffer* file) : RawDecoder(file) {
 
     //this->mRaw = RawImageDataU16();
@@ -266,10 +285,7 @@ void CrxDecoder::parseHeader() {
       bpp = 14;
       */
 
-  wb_coeffs[0] = 0.003;
-  wb_coeffs[1] = 0.003;
-  wb_coeffs[2] = 0.003;
-  wb_coeffs[3] = 0.003;
+
 
   mRaw->metadata.make = "Canon";
   mRaw->metadata.model = "Canon EOS R5"; // FIXME for others
@@ -334,21 +350,30 @@ uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
 
  auto trak4_data = fileBox.payload.getSubView(trak4_media_ptr, trak4_size);
 
+ auto trak4_recs = split_ctmd_records(DataBuffer(trak4_data, Endianness::little));
+
+ Buffer ctmd_rec8 = trak4_recs[8]; // FIXME check
+
+ DataBuffer ctmd_rec8_exif = DataBuffer(ctmd_rec8.getSubView(8, ctmd_rec8.getSize()-8), Endianness::little); // TODO detect from file?
+
+   FileWriter ctmd_rec8_data_f("/tmp/test2.ctmd_rec8");
+  ctmd_rec8_data_f.writeFile(&ctmd_rec8_exif, ctmd_rec8_exif.getSize());
 
 
    FileWriter trak4_data_f("/tmp/test2.trak4");
   trak4_data_f.writeFile(&trak4_data, trak4_data.getSize());
 
 
+    NORangesSet<Buffer> rs;
 
+  TiffRootIFD IFD_ctmd_rec8(nullptr, &rs, ctmd_rec8_exif, 8); // TODO: skip TIFF header
 
-  //SimpleTiffDecoder(TiffRootIFDOwner&& root, const Buffer* file)
 
   TiffRootIFDOwner root;
 
   //SimpleTiffDecoder tiff_dec(root, &cmt1.payload);
 
-  NORangesSet<Buffer> rs;
+
 
   // TODO: detect endianess from file
   DataBuffer cmt1_buf = DataBuffer(cmt1.payload.getSubView(0, cmt1.payload.getSize()), Endianness::little);
@@ -379,21 +404,43 @@ uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
 
 
 
-      if (IFD0_cmp3.hasEntryRecursive(ISOSPEEDRATINGS)) {
-      TiffEntry *wb = IFD0_cmp3.getEntryRecursive(ISOSPEEDRATINGS);
+      if (IFD_ctmd_rec8.hasEntryRecursive(CANONCOLORDATA)) {
+      TiffEntry *wb = IFD_ctmd_rec8.getEntryRecursive(CANONCOLORDATA);
       // this entry is a big table, and different cameras store used WB in
       // different parts, so find the offset, default is the most common one
       int offset = hints.get("wb_offset", 126);
 
-      auto fw = wb->getString();
+      if(wb->count == 3656) { // R5/R6, test others https://github.com/exiftool/exiftool/blob/ceff3cbc4564e93518f3d2a2e00d8ae203ff54af/lib/Image/ExifTool/Canon.pm#L1910
+      
+      //auto fw = wb->getString();
 
-      offset /= 2;
+      //offset /= 2;
 
-      printf("HAS WB DATA %s\n", fw.c_str());
+      int offset = 0x55; // FIXME override, as hints wont work yet!!!
 
-      //mRaw->metadata.wbCoeffs[0] = static_cast<float>(wb->getU16(offset + 0));
-      //mRaw->metadata.wbCoeffs[1] = static_cast<float>(wb->getU16(offset + 1));
-      //mRaw->metadata.wbCoeffs[2] = static_cast<float>(wb->getU16(offset + 3));
+      printf("HAS WB DATA, count: %d, offset: 0x%x\n", wb->count, offset);
+
+
+  wb_coeffs[0] = static_cast<float>(wb->getU16(offset + 0)) / 1024.0;
+  wb_coeffs[1] = static_cast<float>(wb->getU16(offset + 1)) / 1024.0;
+  wb_coeffs[2] = 0; // GG
+  wb_coeffs[3] = static_cast<float>(wb->getU16(offset + 3)) / 1024.0;
+
+/*
+      mRaw->metadata.wbCoeffs[0] = static_cast<float>(wb->getU16(offset + 0)) / 1024.0;
+      mRaw->metadata.wbCoeffs[1] = static_cast<float>(wb->getU16(offset + 1)) / 1024.0;
+      mRaw->metadata.wbCoeffs[2] = static_cast<float>(wb->getU16(offset + 3)) / 1024.0;
+*/
+      printf("FOUND WB DATA, 0: %f, 1: %f, 2: %f, 3: %f\n", 
+        wb_coeffs[0],
+        wb_coeffs[1],
+        wb_coeffs[2],
+        wb_coeffs[3]
+      );
+
+      }
+
+
       } else {
         printf("NOT FOUND\n");
       }
@@ -779,6 +826,14 @@ void CrxDecoder::checkSupportInternal(const CameraMetaData* meta) {
   auto id = rootIFD->getID();
   this->checkCameraSupported(meta, id.make, id.model, "");
   */
+
+
+
+  std::string make = "Canon";
+  std::string model = "Canon EOS R5"; // FIXME for others
+
+  // load hints etc.
+  //checkCameraSupported(meta, make, model, "");
 }
 
 void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
@@ -813,9 +868,11 @@ void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
     mRaw->metadata.wbCoeffs[2] = 1.573242188;
   */
 
+ /* correct values!!!
     mRaw->metadata.wbCoeffs[2] = 1.83203;
     mRaw->metadata.wbCoeffs[1] = 1.0;
     mRaw->metadata.wbCoeffs[0] = 1.92871;
+  */
 
     //mRaw->whitePoint = (1UL << 14) - 1UL; // TODO check? not needed...
 
@@ -3976,6 +4033,9 @@ printf("mdathdr value: %x\n", *(uint32_t*)mdat_raw_image.getData(0, 4));
   printf("final value: %x\n", ((uint64_t*)outbuf)[1]);
   printf("final value: %x\n", ((uint64_t*)outbuf)[2]);
   printf("final value: %x\n", ((uint64_t*)outbuf)[3]);
+
+  // delete input buffer, not needed
+  delete img.input;
 
 }
 
