@@ -307,8 +307,38 @@ void CrxDecoder::parseHeader() {
   FileWriter cmt3_f("/tmp/test2.cmt3");
   cmt3_f.writeFile(&cmt3.payload, cmt3.payload.getSize());
 
-  FileWriter cmt4_f("/tmp/test4.cmt4");
+  FileWriter cmt4_f("/tmp/test2.cmt4");
   cmt4_f.writeFile(&cmt4.payload, cmt4.payload.getSize());
+
+
+
+
+
+
+
+  auto trak4_stbl = fileBox.find_first('moov').find_nth('trak', 4).find_first('mdia').find_first('minf').find_first('stbl');
+
+  auto trak4_co64 = trak4_stbl.find_first('co64');
+  auto trak4_stsz = trak4_stbl.find_first('stsz');
+  auto trak4_stsd = trak4_stbl.find_first('stsd');
+
+
+uint32_t stsz4_size = trak4_stsz.payload.get<uint32_t>(4);
+uint32_t trak4_size = stsz4_size;
+uint32_t stsz4_count = trak4_stsz.payload.get<uint32_t>(8);
+if(stsz4_size == 0) {
+  trak4_size = trak4_stsz.payload.get<uint32_t>(12);
+}
+
+uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
+
+ auto trak4_data = fileBox.payload.getSubView(trak4_media_ptr, trak4_size);
+
+
+
+   FileWriter trak4_data_f("/tmp/test2.trak4");
+  trak4_data_f.writeFile(&trak4_data, trak4_data.getSize());
+
 
 
 
@@ -345,6 +375,35 @@ void CrxDecoder::parseHeader() {
     iso = IFD0_cmp2.getEntryRecursive(ISOSPEEDRATINGS)->getU32();
 
   printf("EXIF-ISO: %d\n", iso);
+
+
+
+
+      if (IFD0_cmp3.hasEntryRecursive(ISOSPEEDRATINGS)) {
+      TiffEntry *wb = IFD0_cmp3.getEntryRecursive(ISOSPEEDRATINGS);
+      // this entry is a big table, and different cameras store used WB in
+      // different parts, so find the offset, default is the most common one
+      int offset = hints.get("wb_offset", 126);
+
+      auto fw = wb->getString();
+
+      offset /= 2;
+
+      printf("HAS WB DATA %s\n", fw.c_str());
+
+      //mRaw->metadata.wbCoeffs[0] = static_cast<float>(wb->getU16(offset + 0));
+      //mRaw->metadata.wbCoeffs[1] = static_cast<float>(wb->getU16(offset + 1));
+      //mRaw->metadata.wbCoeffs[2] = static_cast<float>(wb->getU16(offset + 3));
+      } else {
+        printf("NOT FOUND\n");
+      }
+  /*
+
+    TiffRootIFD(TiffIFD* parent_, NORangesSet<Buffer>* ifds,
+              const DataBuffer& data, uint32_t offset)
+      : TiffIFD(parent_, ifds, data, offset), rootBuffer(data) {}
+      */
+
 
   //thmb.payload.begin(), th
 
@@ -752,7 +811,7 @@ void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
     mRaw->metadata.wbCoeffs[0] = 1.8515625;
     mRaw->metadata.wbCoeffs[1] = 1.0;
     mRaw->metadata.wbCoeffs[2] = 1.573242188;
-  */  
+  */
 
     mRaw->metadata.wbCoeffs[2] = 1.83203;
     mRaw->metadata.wbCoeffs[1] = 1.0;
