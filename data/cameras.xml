@@ -1486,6 +1486,9 @@
 			<Vertical x="0" width="160"/>
 			<Horizontal y="0" height="122"/>
 		</BlackAreas>
+		<Hints>
+			<Hint name="wb_offset" value="85"/>
+		</Hints>		
 
 	</Camera>
 	<Camera make="Canon" model="Canon PowerShot Pro1">
