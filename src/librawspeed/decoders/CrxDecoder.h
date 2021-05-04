@@ -21,7 +21,8 @@
 
 #pragma once
 
-#include "common/RawImage.h"     // for RawImage
+#include "decoders/AbstractBmffDecoder.h"   // for AbstractBmffDecoder
+#include "common/RawImage.h"                // for RawImage
 #include "decoders/RawDecoder.h" // for RawDecoder
 #include "io/Buffer.h"           // for Buffer
 #include "tiff/TiffIFD.h"        // for TiffRootIFDOwner
@@ -34,29 +35,13 @@ namespace rawspeed {
 class CameraMetaData;
 
 
-struct BmffBox {
-public:
-  uint64_t size; // box size
-  uint32_t type; // box type
-  uint32_t offset; // offset into file
-  DataBuffer payload; // box data without box header
-  std::vector<BmffBox> childs;
-  std::array<uint8_t, 16> uuid;
-
-  static std::vector<BmffBox> parse(const DataBuffer &buf, uint32_t file_offset = 0);
-
-  BmffBox find_first(uint32_t box_type);
-  BmffBox find_nth(uint32_t box_type, size_t nth);
-  BmffBox find_uuid_first(std::array<uint8_t, 16> uuid);
-  BmffBox find_uuid_nth(std::array<uint8_t, 16> uuid, size_t nth);
-};
 
 
 
-class CrxDecoder final : public RawDecoder {
-  TiffRootIFDOwner rootIFD;
+class CrxDecoder final : public AbstractBmffDecoder {
+  //TiffRootIFDOwner rootIFD;
 
-  BmffBox fileBox;
+  //BmffBox fileBox; // TODO remove me
 
   uint32_t raw_width = 0;
   uint32_t raw_height = 0;

@@ -42,8 +42,7 @@
 #include <iostream>
 #include <fstream>
 
-#define BMFF_HDR_SIZE_LEN 4
-#define BMFF_HDR_TYPE_LEN 4
+
 
 constexpr std::array<uint8_t, 16> CANO = std::array<uint8_t, 16>({0x85, 0xc0, 0xb6, 0x87, 0x82, 0x0f, 0x11, 0xe0, 0x81, 0x11, 0xf4, 0xce, 0x46, 0x2b, 0x6a, 0x48});
 
@@ -139,108 +138,6 @@ void validate_header_data(std::unique_ptr<const rawspeed::crx_data_header_t> &hd
 
 
 
-  BmffBox BmffBox::find_first(uint32_t box_type) {
-    return find_nth(box_type, 1);
-  }
-
-
-  BmffBox BmffBox::find_nth(uint32_t box_type, size_t nth) {
-    auto res = childs.begin();
-    do {
-      res = std::find_if(res,
-        childs.end(),
-        [box_type](auto box){ return box.type == box_type; });
-      if(--nth == 0 && res != childs.end()) {
-        return *res;
-      }
-      ++res;
-    }
-    while(res != childs.end() && nth > 0);
-    ThrowRDE("Couldn't find bmff type"); // TODO: add type
-  }
-
-
-  BmffBox BmffBox::find_uuid_first(std::array<uint8_t, 16> uuid) {
-    return find_uuid_nth(uuid, 1);
-  }
-
-
-  BmffBox BmffBox::find_uuid_nth(std::array<uint8_t, 16> uuid, size_t nth) {
-    auto res = childs.begin();
-    do {
-      res = std::find_if(res,
-        childs.end(),
-        [uuid](auto box){ return box.uuid == uuid; });
-      if(--nth == 0 && res != childs.end()) {
-        return *res;
-      }
-      ++res;
-    }
-    while(res != childs.end() && nth > 0);
-    ThrowRDE("Couldn't find bmff uuid"); // TODO: add type
-  }
-
-
-std::vector<BmffBox> BmffBox::parse(const DataBuffer &buf, uint32_t file_offset) {
-  std::vector<BmffBox> boxes;
-  for(size_t i = 0; i < buf.getSize(); ) {
-    std::array<uint8_t, 16> box_uuid;
-    uint64_t box_size = buf.get<uint32_t>(i);
-    uint32_t box_hdr_size = BMFF_HDR_SIZE_LEN+BMFF_HDR_TYPE_LEN;
-    switch (box_size)
-    {
-    case 0: // Box expand to end of buffer
-      box_size = buf.getSize();
-      break;
-    case 1: // Box use `largesize` field after type field
-      box_size = buf.get<uint64_t>(i+BMFF_HDR_SIZE_LEN+BMFF_HDR_TYPE_LEN);
-      box_hdr_size += sizeof(uint64_t); // add optional largesize field to header size
-      break;
-    default:
-      break;
-    }
-    uint32_t box_type = buf.get<uint32_t>(i+BMFF_HDR_SIZE_LEN);
-    std::string tag(reinterpret_cast<const char*>(buf.getData(i+BMFF_HDR_SIZE_LEN, 4)), 4);
-    writeLog(DEBUG_PRIO_EXTRA, "Parsing hit type %s", tag.c_str());
-    if('uuid' == box_type) {
-      auto uuid_buf = buf.getSubView(i+box_hdr_size, 16);
-      std::copy(uuid_buf.begin(), uuid_buf.end(), box_uuid.begin());
-      box_hdr_size += 16; // add optional uuid field size to header size
-    }
-    DataBuffer box_data(buf.getSubView(i+box_hdr_size, box_size-box_hdr_size), buf.getByteOrder());
-    std::vector<BmffBox> box_childs;
-    switch(box_type) {
-    case 'moov':
-    case 'trak':
-    case 'mdia':
-    case 'minf':
-    case 'dinf':
-    case 'stbl':
-    case 'stsd':
-    case 'CRAW':
-      writeLog(DEBUG_PRIO_EXTRA, "Parsing down");
-      box_childs = BmffBox::parse(box_data, i+box_hdr_size);
-      break;
-    case 'uuid':
-      if(box_uuid == CANO) {
-        box_childs = BmffBox::parse(box_data, i+box_hdr_size);
-      }
-      break;
-    }
-    boxes.push_back(BmffBox({
-      size: box_size,
-      type: box_type,
-      offset: file_offset + i,
-      payload: box_data,
-      childs: box_childs,
-      uuid: box_uuid,
-    }));
-    i += box_size;
-  }
-  return boxes;
-}
-
-
 class CameraMetaData;
 
 
@@ -261,13 +158,11 @@ std::map<int16_t, Buffer> split_ctmd_records(DataBuffer ctmd) {
 }
 
 
-CrxDecoder::CrxDecoder(const Buffer* file) : RawDecoder(file) {
-
-    //this->mRaw = RawImageDataU16();
-
+CrxDecoder::CrxDecoder(const Buffer* file) : AbstractBmffDecoder(file) {
+  mCustomBoxContainers.push_back(CANO); // TODO docu
+  parseBmffInternal();
   parseHeader();
-
-   }
+}
 
 int CrxDecoder::isCrx(const Buffer* input) {
   static const std::array<char, 8> magic = {{'f', 't', 'y', 'p', 'c', 'r', 'x', ' '}};
@@ -278,6 +173,9 @@ int CrxDecoder::isCrx(const Buffer* input) {
 void CrxDecoder::parseHeader() {
   if (!isCrx(mFile))
     ThrowRDE("This isn't actually a Crx file, why are you calling me?");
+
+  if (!getFileBox())
+    ThrowRDE("Filebox is not initialized, why are you calling me?");
 
 /*
       raw_height = 5464; // CCD Size Y
@@ -290,13 +188,13 @@ void CrxDecoder::parseHeader() {
   mRaw->metadata.make = "Canon";
   mRaw->metadata.model = "Canon EOS R5"; // FIXME for others
 
-  auto inbuf = DataBuffer(*mFile, Endianness::big);
+  //auto inbuf = DataBuffer(*mFile, Endianness::big);
 
 
   writeLog(DEBUG_PRIO_EXTRA, "Parsing HEADER");
 
-
-  std::vector<BmffBox> boxes = BmffBox::parse(inbuf);
+  /*
+  std::vector<BmffBox> boxes; // = BmffBox::parse(inbuf);
 
   this->fileBox = BmffBox({
     size: inbuf.getSize(),
@@ -306,14 +204,18 @@ void CrxDecoder::parseHeader() {
     childs: boxes,
     uuid: std::array<uint8_t, 16>(),
   });
+  */
 
 
-  auto cmt1 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT1');
-  auto cmt2 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT2');
-  auto cmt3 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT3');
-  auto cmt4 = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CMT4');
+  auto cmt1 = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('CMT1');
+  auto cmt2 = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('CMT2');
+  auto cmt3 = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('CMT3');
+  auto cmt4 = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('CMT4');
 
 
+
+
+  /*
   FileWriter cmt1_f("/tmp/test2.cmt1");
   cmt1_f.writeFile(&cmt1.payload, cmt1.payload.getSize());
 
@@ -325,14 +227,13 @@ void CrxDecoder::parseHeader() {
 
   FileWriter cmt4_f("/tmp/test2.cmt4");
   cmt4_f.writeFile(&cmt4.payload, cmt4.payload.getSize());
+  */
 
 
 
 
 
-
-
-  auto trak4_stbl = fileBox.find_first('moov').find_nth('trak', 4).find_first('mdia').find_first('minf').find_first('stbl');
+  auto trak4_stbl = getFileBox()->find_first('moov').find_nth('trak', 4).find_first('mdia').find_first('minf').find_first('stbl');
 
   auto trak4_co64 = trak4_stbl.find_first('co64');
   auto trak4_stsz = trak4_stbl.find_first('stsz');
@@ -348,7 +249,7 @@ if(stsz4_size == 0) {
 
 uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
 
- auto trak4_data = fileBox.payload.getSubView(trak4_media_ptr, trak4_size);
+ auto trak4_data = getFileBox()->payload.getSubView(trak4_media_ptr, trak4_size);
 
  auto trak4_recs = split_ctmd_records(DataBuffer(trak4_data, Endianness::little));
 
@@ -411,12 +312,12 @@ uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
       int offset = hints.get("wb_offset", 126);
 
       if(wb->count == 3656) { // R5/R6, test others https://github.com/exiftool/exiftool/blob/ceff3cbc4564e93518f3d2a2e00d8ae203ff54af/lib/Image/ExifTool/Canon.pm#L1910
-      
+
       //auto fw = wb->getString();
 
       //offset /= 2;
 
-      int offset = 0x55; // FIXME override, as hints wont work yet!!!
+      //int offset = 0x55; // FIXME override, as hints wont work yet!!!
 
       printf("HAS WB DATA, count: %d, offset: 0x%x\n", wb->count, offset);
 
@@ -431,7 +332,7 @@ uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
       mRaw->metadata.wbCoeffs[1] = static_cast<float>(wb->getU16(offset + 1)) / 1024.0;
       mRaw->metadata.wbCoeffs[2] = static_cast<float>(wb->getU16(offset + 3)) / 1024.0;
 */
-      printf("FOUND WB DATA, 0: %f, 1: %f, 2: %f, 3: %f\n", 
+      printf("FOUND WB DATA, 0: %f, 1: %f, 2: %f, 3: %f\n",
         wb_coeffs[0],
         wb_coeffs[1],
         wb_coeffs[2],
@@ -444,6 +345,9 @@ uint64_t trak4_media_ptr = trak4_co64.payload.get<uint64_t>(8);
       } else {
         printf("NOT FOUND\n");
       }
+  writeLog(DEBUG_PRIO_EXTRA, "Parsing HEADER DONE");
+
+
   /*
 
     TiffRootIFD(TiffIFD* parent_, NORangesSet<Buffer>* ifds,
@@ -599,13 +503,13 @@ RawImage CrxDecoder::decodeRawInternal() {
 
 
 
-  auto trak1 = fileBox.find_first('moov').find_nth('trak', 3);
+  auto trak1 = getFileBox()->find_first('moov').find_nth('trak', 3);
 
-  auto cncv = fileBox.find_first('moov').find_uuid_first(CANO).find_first('CNCV');
+  auto cncv = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('CNCV');
   std::string compr_ver(cncv.payload.begin(), cncv.payload.end());
   writeLog(DEBUG_PRIO_EXTRA, "CNCV compressor version: %s", compr_ver.c_str());
 
-  auto thmb = fileBox.find_first('moov').find_uuid_first(CANO).find_first('THMB');
+  auto thmb = getFileBox()->find_first('moov').find_uuid_first(CANO).find_first('THMB');
 
   FileWriter out("/tmp/test.jpg");
   out.writeFile(&thmb.payload, thmb.payload.getSize());
@@ -614,21 +518,21 @@ RawImage CrxDecoder::decodeRawInternal() {
 
 
 
-  auto trak1_co64 = fileBox.find_first('moov').find_first('trak').find_first('mdia').find_first('minf').find_first('stbl').find_first('co64');
+  auto trak1_co64 = getFileBox()->find_first('moov').find_first('trak').find_first('mdia').find_first('minf').find_first('stbl').find_first('co64');
 
   FileWriter out2("/tmp/test.trak1co64");
   out2.writeFile(&trak1_co64.payload, trak1_co64.payload.getSize());
 
   auto trak1_ptr = trak1_co64.payload.get<uint64_t>(8);
 
-  auto jpeg_trak = fileBox.payload.getSubView(trak1_ptr);
+  auto jpeg_trak = getFileBox()->payload.getSubView(trak1_ptr);
 
     FileWriter out_jpg("/tmp/test_fulljpeg.jpg");
   out_jpg.writeFile(&jpeg_trak, jpeg_trak.getSize());
 
 
 
-  auto trak3_stbl = fileBox.find_first('moov').find_nth('trak', 3).find_first('mdia').find_first('minf').find_first('stbl');
+  auto trak3_stbl = getFileBox()->find_first('moov').find_nth('trak', 3).find_first('mdia').find_first('minf').find_first('stbl');
 
   auto trak3_co64 = trak3_stbl.find_first('co64');
   auto trak3_stsz = trak3_stbl.find_first('stsz');
@@ -654,7 +558,7 @@ if(stsz_size == 0) {
 
 
 
-  auto trak3_data = fileBox.payload.getSubView(trak3_media_ptr, trak3_size);
+  auto trak3_data = getFileBox()->payload.getSubView(trak3_media_ptr, trak3_size);
 
 
 
@@ -680,7 +584,7 @@ if(stsz_size == 0) {
 
 
 
-  auto mdat_box = fileBox.find_first('mdat');
+  auto mdat_box = getFileBox()->find_first('mdat');
 
   FileWriter mdat_box_f("/tmp/test.mdat");
   mdat_box_f.writeFile(&mdat_box.payload, mdat_box.payload.getSize());
@@ -819,6 +723,9 @@ if (file.read(buffer.data(), size))
 }
 
 void CrxDecoder::checkSupportInternal(const CameraMetaData* meta) {
+
+  writeLog(DEBUG_PRIO_EXTRA, "checkSupport Internal ENTRY");
+
     /*
   if (!rootIFD)
     ThrowRDE("Couldn't find make and model");
@@ -833,7 +740,9 @@ void CrxDecoder::checkSupportInternal(const CameraMetaData* meta) {
   std::string model = "Canon EOS R5"; // FIXME for others
 
   // load hints etc.
-  //checkCameraSupported(meta, make, model, "");
+  checkCameraSupported(meta, make, model, "");
+
+  writeLog(DEBUG_PRIO_EXTRA, "checkSupport Internal EXIT");
 }
 
 void CrxDecoder::decodeMetaDataInternal(const CameraMetaData* meta) {
