@@ -30,7 +30,7 @@ namespace rawspeed {
 IsoMParser::IsoMParser(const Buffer* inputData) : RawParser(inputData) {}
 
 void IsoMParser::parseData() {
-  ByteStream bs(*mInput, 0);
+  ByteStream bs(DataBuffer(*mInput, Endianness::unknown));
 
   // The 'ISO base media file format' is big-endian.
   bs.setByteOrder(Endianness::big);

@@ -29,7 +29,7 @@ namespace rawspeed {
 class IsoMParserException final : public RawParserException {
 public:
   explicit IsoMParserException(const std::string& msg)
-      : RawParserException(msg) {}
+      : RawParserException(msg.c_str()) {}
   explicit IsoMParserException(const char* msg) : RawParserException(msg) {}
 };
 

@@ -51,7 +51,7 @@ AbstractIsoMBox::AbstractIsoMBox(ByteStream* bs) {
   } else {
     // Meh, the ugly case :/
     assert(boxSize == 1);
-    const auto largeSize = bs->get<uint64>();
+    const auto largeSize = bs->get<uint64_t>();
 
     // The rawspeed::Buffer is 32-bit, so even we somehow get here with valid
     // more-than 32-bit-sized box, we can't do anything about it.
@@ -277,7 +277,7 @@ IsoMChunkLargeOffsetBox::IsoMChunkLargeOffsetBox(const AbstractIsoMBox& base)
   std::generate_n(
       std::back_inserter(chunkOffsets), entryCount,
       [this]() -> Buffer::size_type {
-        const auto largeSize = data.get<uint64>();
+        const auto largeSize = data.get<uint64_t>();
 
         // The rawspeed::Buffer is 32-bit, so even we somehow get here with
         // valid more-than 32-bit-sized box, we can't do anything about it. We

@@ -35,7 +35,7 @@
 namespace rawspeed {
 
 struct FourCharStr final {
-  using value_type = uint32;
+  using value_type = uint32_t;
   static constexpr auto num_chars = sizeof(value_type) / sizeof(char);
   static_assert(num_chars == 4, "wanted 4 chars specifically");
 
@@ -74,7 +74,7 @@ struct AbstractIsoMBox {
   ByteStream data;
 
   FourCharStr boxType;
-  std::array<uchar8, 16> userType{}; // when boxType == "uuid"
+  std::array<uint8_t, 16> userType{}; // when boxType == "uuid"
 
   AbstractIsoMBox() = default;
 
@@ -156,10 +156,10 @@ template <const FourCharStr /* IsoMBoxTypes::* */& type>
 struct IsoMFullBox : public IsoMBox<type> {
   using BaseBox = IsoMBox<type>;
 
-  uchar8 version;
-  uint32 flags : 24;
+  uint8_t version;
+  uint32_t flags : 24;
 
-  uchar8 expectedVersion() const { return 0; }
+  uint8_t expectedVersion() const { return 0; }
 
   IsoMFullBox() = default;
   virtual ~IsoMFullBox() = default;
@@ -188,7 +188,7 @@ struct IsoMFileTypeBox final : public IsoMBox<IsoMBoxTypes::ftyp> {
       FourCharStr({'c', 'r', 'x', ' '})};
 
   FourCharStr majorBrand;
-  uint32 minorVersion;
+  uint32_t minorVersion;
   std::vector<FourCharStr> compatibleBrands;
 
   explicit IsoMFileTypeBox(const AbstractIsoMBox& base);
@@ -201,8 +201,8 @@ struct IsoMFileTypeBox final : public IsoMBox<IsoMBoxTypes::ftyp> {
 
 struct IsoMSampleDescriptionBox final : public IsoMFullBox<IsoMBoxTypes::stsd> {
   struct SampleEntry final : public AbstractIsoMBox {
-    std::array<uchar8, 6> reserved;
-    ushort16 dataReferenceIndex;
+    std::array<uint8_t, 6> reserved;
+    uint16_t dataReferenceIndex;
 
     SampleEntry() = default;
 
@@ -219,9 +219,9 @@ struct IsoMSampleDescriptionBox final : public IsoMFullBox<IsoMBoxTypes::stsd> {
 
 struct IsoMSampleToChunkBox final : public IsoMFullBox<IsoMBoxTypes::stsc> {
   struct Dsc final {
-    uint32 firstChunk;
-    uint32 samplesPerChunk;
-    uint32 sampleDescriptionIndex;
+    uint32_t firstChunk;
+    uint32_t samplesPerChunk;
+    uint32_t sampleDescriptionIndex;
   };
 
   std::vector<Dsc> dscs;

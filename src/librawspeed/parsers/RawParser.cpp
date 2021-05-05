@@ -57,12 +57,14 @@ std::unique_ptr<RawDecoder> RawParser::getDecoder(const CameraMetaData* meta) {
     }
   }
 
+  /* TODO: replace me
   if (CrxDecoder::isCrx(mInput)) {
     try {
       return std::make_unique<CrxDecoder>(mInput);
     } catch (RawDecoderException &) {
     }
   }
+  */
 
   // FUJI has pointers to IFD's at fixed byte offsets
   // So if camera is FUJI, we cannot use ordinary TIFF parser
