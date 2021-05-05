@@ -242,12 +242,15 @@ IsoMSampleSizeBox::IsoMSampleSizeBox(const AbstractIsoMBox& base)
   const auto sampleSize = data.getU32();
   const auto sampleCount = data.getU32();
 
-  if (sampleSize == 0)
-    ThrowIPE("Don't know how to handle stsz box with zero sampleSize");
-  if (sampleCount != 1)
-    ThrowIPE("Don't know how to handle stsz box with %u entries", sampleCount);
-
-  chunkSizes.emplace_back(sampleSize);
+  if (sampleSize == 0) {
+    for(uint32_t i = 0; i < sampleCount; ++i) {
+      chunkSizes.emplace_back(data.getU32());
+    }
+  } else {
+    // It's the only sample size and it is stored
+    // in the sampleSize directly.
+    chunkSizes.emplace_back(sampleSize);
+  }
 
   // Validate.
   operator bool();
