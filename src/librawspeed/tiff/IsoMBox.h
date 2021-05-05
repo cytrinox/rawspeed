@@ -114,8 +114,6 @@ class IsoMContainer {
 protected:
   ByteStream cData;
 
-  std::vector<AbstractIsoMBox> boxes;
-
   // These are specific for each container, and must be implemented.
   virtual void parseBox(const AbstractIsoMBox& box) = 0;
   virtual explicit operator bool() const = 0;
@@ -123,6 +121,8 @@ protected:
   friend struct IsoMMediaDataBox; // needs access to cData
 
 public:
+  std::vector<AbstractIsoMBox> boxes;
+
   IsoMContainer() = default;
   virtual ~IsoMContainer() = default;
 

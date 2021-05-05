@@ -37,12 +37,22 @@ RawImage Cr3Decoder::decodeRawInternal() {
     }
   }
 
+  rootBox->boxes;
+
+
+
+
+  writeLog(DEBUG_PRIO_EXTRA, "decodeRawInternal ENTER");
   // Hardcoded for Canon M50.
   mRaw->dim = {6288, 4056};
 
+/*
   LJpegDecompressor d(biggestImage, mRaw);
   mRaw->createData();
   d.decode(0, 0, mRaw->dim.x, mRaw->dim.y, false);
+*/
+
+  writeLog(DEBUG_PRIO_EXTRA, "decodeRawInternal EXIT");
 
   return mRaw;
 }
