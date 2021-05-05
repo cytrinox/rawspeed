@@ -57,7 +57,15 @@ public:
   const BmffBox find_nth(uint32_t box_type, size_t nth) const;
   const BmffBox find_uuid_first(std::array<uint8_t, 16> uuid) const;
   const BmffBox find_uuid_nth(std::array<uint8_t, 16> uuid, size_t nth) const;
+
+  static inline uint32_t t(const char *type) {
+    assert(strlen(type) == 4);
+    const uint8_t *in = reinterpret_cast<const uint8_t*>(type);
+    return in[0] << 24 | in[1] << 16 | in[2] << 8 | in[3];
+  }
 };
+
+
 
 
 
