@@ -21,6 +21,7 @@
 #pragma once
 
 #include "common/Common.h"  // for uint32
+#include "parsers/IsoMParserException.h" // for ThrowIPE
 #include "io/ByteStream.h"  // for ByteStream
 #include "io/Endianness.h"  // for getBE
 #include <array>            // for array
@@ -71,10 +72,12 @@ struct IsoMMediaDataBox;
 
 // The most basic box.
 struct AbstractIsoMBox {
+  typedef std::array<uint8_t, 16> UuidType;
+
   ByteStream data;
 
   FourCharStr boxType;
-  std::array<uint8_t, 16> userType{}; // when boxType == "uuid"
+  UuidType userType{}; // when boxType == "uuid"
 
   AbstractIsoMBox() = default;
 
@@ -104,6 +107,8 @@ struct IsoMBoxTypes final {
   static constexpr FourCharStr trak = FourCharStr({'t', 'r', 'a', 'k'});
   static constexpr FourCharStr moov = FourCharStr({'m', 'o', 'o', 'v'});
   static constexpr FourCharStr mdat = FourCharStr({'m', 'd', 'a', 't'});
+
+  static constexpr FourCharStr uuid = FourCharStr({'u', 'u', 'i', 'd'});
 };
 
 // The basic container.
@@ -128,6 +133,8 @@ public:
 
   explicit IsoMContainer(ByteStream* bs);
 
+  const AbstractIsoMBox& getBox(const AbstractIsoMBox::UuidType& uuid) const;
+
   // !!! DO NOT CALL FROM CONSTRUCTOR !!!
   void parse(IsoMRootBox* root = nullptr) {
     for (const auto& box : boxes)
@@ -149,6 +156,11 @@ struct IsoMBox : public AbstractIsoMBox {
 
   explicit IsoMBox(const AbstractIsoMBox& base) : AbstractIsoMBox(base) {
     assert(BoxType == boxType);
+    if(BoxType != boxType) {
+      ThrowIPE("Unexpected box type, got: '%s', expected: '%s'",
+      BoxType.str().c_str(),
+      boxType.str().c_str());
+    }
   }
 };
 
@@ -365,9 +377,13 @@ class IsoMRootBox final : public IsoMContainer {
   explicit operator bool() const override;
 
 public:
-  std::unique_ptr<IsoMFileTypeBox> ftyp;
-  std::unique_ptr<IsoMMovieBox> moov;
-  std::unique_ptr<IsoMMediaDataBox> mdat;
+  std::unique_ptr<IsoMFileTypeBox> ftypBox;
+  std::unique_ptr<IsoMMovieBox> moovBox;
+  std::unique_ptr<IsoMMediaDataBox> mdatBox;
+
+  const std::unique_ptr<IsoMFileTypeBox>& ftyp() const;
+  const std::unique_ptr<IsoMMovieBox>& moov() const;
+  const std::unique_ptr<IsoMMediaDataBox>& mdat() const;
 
   explicit IsoMRootBox(ByteStream* bs) : IsoMContainer(bs) {}
 };

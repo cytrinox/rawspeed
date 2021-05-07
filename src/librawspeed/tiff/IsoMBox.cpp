@@ -102,6 +102,17 @@ IsoMContainer::IsoMContainer(ByteStream* bs)
   assert(cData.getRemainSize() == 0);
 }
 
+const AbstractIsoMBox&
+IsoMContainer::getBox(const AbstractIsoMBox::UuidType& uuid) const {
+  for(const auto& box : boxes) {
+    if(uuid == box.userType) {
+      return box;
+    }
+  }
+  ThrowIPE("Requested box UUID not found");
+}
+
+
 // The ODR-definitions
 
 const FourCharStr IsoMBoxTypes::ftyp;
@@ -118,6 +129,8 @@ const FourCharStr IsoMBoxTypes::mdia;
 const FourCharStr IsoMBoxTypes::trak;
 const FourCharStr IsoMBoxTypes::moov;
 const FourCharStr IsoMBoxTypes::mdat;
+
+const FourCharStr IsoMBoxTypes::uuid;
 
 // FileType box parsing.
 
@@ -515,7 +528,7 @@ void IsoMMediaDataBox::parse(IsoMRootBox* root) {
 
   // Visit each sample (offset+size pair) in each track.
   auto forEachChunk = [root](auto fun) {
-    for (const auto& track : root->moov->tracks) {
+    for (const auto& track : root->moov()->tracks) {
       auto& stbl = track.mdia->minf->stbl;
       const auto& stsz = stbl->stsz;
       const auto& co64 = stbl->co64;
@@ -570,38 +583,58 @@ void IsoMMediaDataBox::parse(IsoMRootBox* root) {
 
 void IsoMRootBox::parseBox(const AbstractIsoMBox& box) {
   if (IsoMFileTypeBox::BoxType == box.boxType) {
-    if (ftyp)
+    if (ftypBox)
       ThrowIPE("duplicate ftyp box found.");
-    ftyp = AbstractIsoMBox::ParseBox<IsoMFileTypeBox>(box);
+    ftypBox = AbstractIsoMBox::ParseBox<IsoMFileTypeBox>(box);
     return;
   }
   if (IsoMMovieBox::BoxType == box.boxType) {
-    if (!ftyp)
+    if (!ftypBox)
       ThrowIPE("no ftyp box found yet.");
-    if (moov)
+    if (moovBox)
       ThrowIPE("duplicate moov box found.");
-    moov = AbstractIsoMBox::ParseBox<IsoMMovieBox>(box);
+    moovBox = AbstractIsoMBox::ParseBox<IsoMMovieBox>(box);
     return;
   }
   if (IsoMMediaDataBox::BoxType == box.boxType) {
-    if (!moov)
+    if (!moovBox)
       ThrowIPE("no moov box found yet.");
-    if (mdat)
+    if (mdatBox)
       ThrowIPE("duplicate mdat box found.");
-    mdat = AbstractIsoMBox::ParseBox<IsoMMediaDataBox>(box, this);
+    mdatBox = AbstractIsoMBox::ParseBox<IsoMMediaDataBox>(box, this);
     return;
   }
 }
 
 IsoMRootBox::operator bool() const {
-  if (!ftyp)
+  if (!ftypBox)
     ThrowIPE("ftyp box not found.");
-  if (!moov)
+  if (!moovBox)
     ThrowIPE("moov box not found.");
-  if (!mdat)
+  if (!mdatBox)
     ThrowIPE("mdat box not found.");
 
   return true; // OK!
 }
+
+const std::unique_ptr<IsoMFileTypeBox>& IsoMRootBox::ftyp() const {
+  if(ftypBox)
+    return ftypBox;
+  else
+    ThrowIPE("ftyp box not available");
+}
+const std::unique_ptr<IsoMMovieBox>& IsoMRootBox::moov() const {
+  if(moovBox)
+    return moovBox;
+  else
+    ThrowIPE("moov box not available");
+}
+const std::unique_ptr<IsoMMediaDataBox>& IsoMRootBox::mdat() const {
+  if(mdatBox)
+    return mdatBox;
+  else
+    ThrowIPE("mdat box not available");
+}
+
 
 } // namespace rawspeed
