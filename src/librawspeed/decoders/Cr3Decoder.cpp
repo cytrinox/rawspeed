@@ -81,7 +81,7 @@ void IsoMCanonBox::parseBox(const AbstractIsoMBox& box) {
     cmt4Box = AbstractIsoMBox::ParseBox<IsoMCanonCMT4Box>(box);
     return;
   }
-  
+
   if (IsoMCanonThumbnailBox::BoxType == box.boxType) {
     if (thmbBox)
       ThrowIPE("duplicate THMB box found.");
@@ -182,7 +182,7 @@ IsoMCanonBox::operator bool() const {
 
 IsoMCanonCodecVersionBox::IsoMCanonCodecVersionBox(const AbstractIsoMBox& base) : IsoMBox(base) {
   assert(data.getRemainSize() == 30); // Payload string is exactly 30 bytes long
-  auto payload = data.getBuffer(30); 
+  auto payload = data.getBuffer(30);
   compressorVersion = std::string(payload.begin(), payload.end());
   assert(data.getRemainSize() == 0);
 }
@@ -255,6 +255,11 @@ RawImage Cr3Decoder::decodeRawInternal() {
   printf("EXIF-MAKE: %s\n", camId.make.c_str());
   printf("EXIF-MODEL: %s\n", camId.model.c_str());
 
+  uint32_t iso = 0;
+ if (canon.CMT2()->mRootIFD0->hasEntryRecursive(ISOSPEEDRATINGS))
+    iso = canon.CMT2()->mRootIFD0->getEntryRecursive(ISOSPEEDRATINGS)->getU32();
+
+  printf("EXIF-ISO: %d\n", iso);
 
   writeLog(DEBUG_PRIO_EXTRA, "decodeRawInternal ENTER");
   // Hardcoded for Canon M50.
