@@ -44,6 +44,8 @@ struct IsoMBoxCanonTypes final {
   static constexpr FourCharStr CMT3 = FourCharStr({'C', 'M', 'T', '3'});
   static constexpr FourCharStr CMT4 = FourCharStr({'C', 'M', 'T', '4'});
   static constexpr FourCharStr THMB = FourCharStr({'T', 'H', 'M', 'B'});
+
+  static constexpr FourCharStr CRAW = FourCharStr({'C', 'R', 'A', 'W'});
 };
 
 
@@ -100,7 +102,7 @@ public:
 class IsoMCanonCMT4Box final : public IsoMBox<IsoMBoxCanonTypes::CMT4> {
 public:
   TiffRootIFDOwner mRootIFD0;
-  
+
   explicit IsoMCanonCMT4Box(const AbstractIsoMBox& base);
   void parse(IsoMRootBox* root = nullptr) {}
 };
@@ -143,6 +145,38 @@ public:
 };
 
 
+
+
+
+class IsoMCanonCrawBox final : public IsoMBox<IsoMBoxCanonTypes::CRAW> {
+  //void parseBox(const AbstractIsoMBox& box) override;
+  //explicit operator bool() const override;
+
+public:
+/*
+  std::unique_ptr<IsoMCanonCodecVersionBox> cncvBox;
+  std::unique_ptr<IsoMCanonCCTPBox> cctpBox;
+  std::unique_ptr<IsoMCanonCTBOBox> ctboBox;
+  std::unique_ptr<IsoMCanonCMT1Box> cmt1Box;
+  std::unique_ptr<IsoMCanonCMT2Box> cmt2Box;
+  std::unique_ptr<IsoMCanonCMT3Box> cmt3Box;
+  std::unique_ptr<IsoMCanonCMT4Box> cmt4Box;
+  std::unique_ptr<IsoMCanonThumbnailBox> thmbBox;
+  */
+
+  explicit IsoMCanonCrawBox(const AbstractIsoMBox& base);
+
+  /*
+  const std::unique_ptr<IsoMCanonCodecVersionBox>& CNCV() const;
+  const std::unique_ptr<IsoMCanonCCTPBox>& CCTP() const;
+  const std::unique_ptr<IsoMCanonCTBOBox>& CTBO() const;
+  const std::unique_ptr<IsoMCanonCMT1Box>& CMT1() const;
+  const std::unique_ptr<IsoMCanonCMT2Box>& CMT2() const;
+  const std::unique_ptr<IsoMCanonCMT3Box>& CMT3() const;
+  const std::unique_ptr<IsoMCanonCMT4Box>& CMT4() const;
+  const std::unique_ptr<IsoMCanonThumbnailBox>& THMB() const;
+  */
+};
 
 
 

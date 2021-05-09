@@ -23,6 +23,8 @@
 #include "decompressors/LJpegDecompressor.h"
 #include "parsers/IsoMParserException.h" // for ThrowIPE
 
+#include "io/FileWriter.h" // for ByteStream // FIXME remove me
+
 namespace rawspeed {
 
 
@@ -34,6 +36,7 @@ const FourCharStr IsoMBoxCanonTypes::CMT2;
 const FourCharStr IsoMBoxCanonTypes::CMT3;
 const FourCharStr IsoMBoxCanonTypes::CMT4;
 const FourCharStr IsoMBoxCanonTypes::THMB;
+const FourCharStr IsoMBoxCanonTypes::CRAW;
 
 const AbstractIsoMBox::UuidType CanonBoxUuid = {0x85,0xc0,0xb6,0x87,0x82,0x0f,0x11,0xe0,0x81,0x11,0xf4,0xce,0x46,0x2b,0x6a,0x48};
 
@@ -220,6 +223,107 @@ IsoMCanonCMT4Box::IsoMCanonCMT4Box(const AbstractIsoMBox& base) : IsoMBox(base){
 
 
 
+   IsoMCanonCrawBox::IsoMCanonCrawBox(const AbstractIsoMBox& base)
+      : IsoMBox(base) {
+          writeLog(DEBUG_PRIO_EXTRA, "Found CRAW len: %u", data.getRemainSize());
+          //data.skipBytes(90-8); // TODO: parse CRAW fields, not needed for now
+      }
+/*
+void IsoMCanonCrawBox::parseBox(const AbstractIsoMBox& box) {
+  auto boxt = box.boxType;
+
+    writeLog(DEBUG_PRIO_EXTRA, "Found CRAW box: %s", boxt.str().c_str());
+
+
+  if (IsoMCanonCodecVersionBox::BoxType == box.boxType) {
+    if (cncvBox)
+      ThrowIPE("duplicate cncv box found.");
+    cncvBox = AbstractIsoMBox::ParseBox<IsoMCanonCodecVersionBox>(box);
+    return;
+  }
+  if (IsoMCanonCCTPBox::BoxType == box.boxType) {
+    if (cctpBox)
+      ThrowIPE("duplicate CCTP box found.");
+    cctpBox = AbstractIsoMBox::ParseBox<IsoMCanonCCTPBox>(box);
+    return;
+  }
+  if (IsoMCanonCTBOBox::BoxType == box.boxType) {
+    if (ctboBox)
+      ThrowIPE("duplicate CTBO box found.");
+    ctboBox = AbstractIsoMBox::ParseBox<IsoMCanonCTBOBox>(box);
+    return;
+  }
+  if (IsoMCanonCMT1Box::BoxType == box.boxType) {
+    if (cmt1Box)
+      ThrowIPE("duplicate CMT1 box found.");
+    cmt1Box = AbstractIsoMBox::ParseBox<IsoMCanonCMT1Box>(box);
+    return;
+  }
+  if (IsoMCanonCMT2Box::BoxType == box.boxType) {
+    if (cmt2Box)
+      ThrowIPE("duplicate CMT2 box found.");
+    cmt2Box = AbstractIsoMBox::ParseBox<IsoMCanonCMT2Box>(box);
+    return;
+  }
+  if (IsoMCanonCMT3Box::BoxType == box.boxType) {
+    if (cmt3Box)
+      ThrowIPE("duplicate CMT3 box found.");
+    cmt3Box = AbstractIsoMBox::ParseBox<IsoMCanonCMT3Box>(box);
+    return;
+  }
+  if (IsoMCanonCMT4Box::BoxType == box.boxType) {
+    if (cmt4Box)
+      ThrowIPE("duplicate CMT4 box found.");
+    cmt4Box = AbstractIsoMBox::ParseBox<IsoMCanonCMT4Box>(box);
+    return;
+  }
+
+  if (IsoMCanonThumbnailBox::BoxType == box.boxType) {
+    if (thmbBox)
+      ThrowIPE("duplicate THMB box found.");
+    thmbBox = AbstractIsoMBox::ParseBox<IsoMCanonThumbnailBox>(box);
+    return;
+  }
+
+}
+  */
+/*
+IsoMCanonCrawBox::operator bool() const {
+
+  if (!cncvBox)
+    ThrowIPE("no CNCV box found.");
+  if (!cctpBox)
+    ThrowIPE("no CCTP box found.");
+  if (!ctboBox)
+    ThrowIPE("no CTBO box found.");
+  if (!cmt1Box)
+    ThrowIPE("no CMT1 box found.");
+  if (!cmt2Box)
+    ThrowIPE("no CMT2 box found.");
+  if (!cmt3Box)
+    ThrowIPE("no CMT3 box found.");
+  if (!cmt4Box)
+    ThrowIPE("no CMT4 box found.");
+
+  return true; // OK!
+}
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -243,6 +347,35 @@ RawImage Cr3Decoder::decodeRawInternal() {
 
   //const auto box = rootBox->moov()->boxes[0]; // find by uuid?
 
+
+
+  // CRAW BOX
+  /*
+  auto& stsd = rootBox->moov()->tracks[2].mdia->minf->stbl->stsd;
+  auto& stsd_data = rootBox->moov()->tracks[2].mdia->minf->stbl->stsd->data;
+
+  Buffer buf = stsd_data.getSubView(0);
+
+    FileWriter trak3_stsd_f("/tmp/test_trak3.stsd");
+  trak3_stsd_f.writeFile(&buf, buf.getSize());
+  */
+
+  auto& stsd = rootBox->moov()->tracks[2].mdia->minf->stbl->stsd;
+  auto& dscs_data = stsd->dscs[0].data;
+    FileWriter trak3_dscs_f("/tmp/test_trak3.dscs");
+  trak3_dscs_f.writeFile(&dscs_data, dscs_data.getSize());
+
+  IsoMCanonCrawBox canonxx = IsoMCanonCrawBox(stsd->dscs[0]);
+
+
+
+
+
+
+
+
+
+  // ------ CANON BOX
   IsoMCanonBox canon = IsoMCanonBox(rootBox->moov()->getBox(CanonBoxUuid));
 
   canon.parse();
