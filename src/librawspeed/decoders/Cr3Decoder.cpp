@@ -38,6 +38,10 @@ const FourCharStr IsoMBoxCanonTypes::CMT4;
 const FourCharStr IsoMBoxCanonTypes::THMB;
 const FourCharStr IsoMBoxCanonTypes::CRAW;
 
+const FourCharStr IsoMBoxCanonTypes::CMP1;
+const FourCharStr IsoMBoxCanonTypes::CDI1;
+const FourCharStr IsoMBoxCanonTypes::IAD1;
+
 const AbstractIsoMBox::UuidType CanonBoxUuid = {0x85,0xc0,0xb6,0x87,0x82,0x0f,0x11,0xe0,0x81,0x11,0xf4,0xce,0x46,0x2b,0x6a,0x48};
 
 
@@ -223,11 +227,55 @@ IsoMCanonCMT4Box::IsoMCanonCMT4Box(const AbstractIsoMBox& base) : IsoMBox(base){
 
 
 
-   IsoMCanonCrawBox::IsoMCanonCrawBox(const AbstractIsoMBox& base)
-      : IsoMBox(base) {
-          writeLog(DEBUG_PRIO_EXTRA, "Found CRAW len: %u", data.getRemainSize());
-          //data.skipBytes(90-8); // TODO: parse CRAW fields, not needed for now
-      }
+IsoMCanonCrawBox::IsoMCanonCrawBox(const AbstractIsoMBox& base)
+  : IsoMBox(base) {
+  // Set position after box `size` and `boxtype` fields, so we
+  // can parse the custom SampleEntry ourself.
+  data.setPosition(8);
+
+  writeLog(DEBUG_PRIO_EXTRA, "Found CRAW len: %u", data.getRemainSize());
+  writeLog(DEBUG_PRIO_EXTRA, "Found CRAW off: %u", data.getPosition());
+
+  for (auto& c : reserved1)
+    c = data.getByte();
+  dataReferenceIndex = data.getU16();
+  for (auto& c : reserved2)
+    c = data.getByte();
+  width = data.getU16();
+  height = data.getU16();
+  xResolution = static_cast<uint32_t>(data.getU16()) << 16 | data.getU16();
+  yResolution = static_cast<uint32_t>(data.getU16()) << 16 | data.getU16();
+  reserved3 = data.getU32();
+  reserved4 = data.getU16();
+  for (auto& c : reserved5)
+    c = data.getByte();
+  bitDepth  = data.getU16();
+  reserved6  = data.getU16();
+  flags = data.getU16();
+  formatInd = data.getU16();
+
+  writeLog(DEBUG_PRIO_EXTRA, "Found CRAW widttt: 0x%x, fmt: 0x%x, res: %d", width, formatInd, xResolution >> 16);
+
+  assert(data.getPosition() == 90);
+
+  //auto cmp1 = IsoMCanonCmp1Box(AbstractIsoMBox(&data)); // CMP1
+  //writeLog(DEBUG_PRIO_EXTRA, "Found box: %s", x.boxType.str().c_str());
+
+  cmp1Box = std::make_unique<IsoMCanonCmp1Box>(AbstractIsoMBox(&data));
+  cdi1Box = std::make_unique<IsoMCanonCdi1Box>(AbstractIsoMBox(&data));
+
+  // Validate.
+  operator bool();
+
+  /*
+  x = AbstractIsoMBox(&data); // CDI1 (container box, contains IAD1)
+  writeLog(DEBUG_PRIO_EXTRA, "Found box: %s", x.boxType.str().c_str());
+  x = AbstractIsoMBox(&data); // free
+  writeLog(DEBUG_PRIO_EXTRA, "Found box: %s", x.boxType.str().c_str());
+  */
+
+  //data.skipBytes(90-8); // TODO: parse CRAW fields, not needed for now
+  }
 /*
 void IsoMCanonCrawBox::parseBox(const AbstractIsoMBox& box) {
   auto boxt = box.boxType;
@@ -287,36 +335,119 @@ void IsoMCanonCrawBox::parseBox(const AbstractIsoMBox& box) {
 
 }
   */
-/*
+
 IsoMCanonCrawBox::operator bool() const {
 
-  if (!cncvBox)
-    ThrowIPE("no CNCV box found.");
-  if (!cctpBox)
-    ThrowIPE("no CCTP box found.");
-  if (!ctboBox)
-    ThrowIPE("no CTBO box found.");
-  if (!cmt1Box)
-    ThrowIPE("no CMT1 box found.");
-  if (!cmt2Box)
-    ThrowIPE("no CMT2 box found.");
-  if (!cmt3Box)
-    ThrowIPE("no CMT3 box found.");
-  if (!cmt4Box)
-    ThrowIPE("no CMT4 box found.");
+  if (!cmp1Box)
+    ThrowIPE("no CMP1 box found.");
+  if (!cdi1Box)
+    ThrowIPE("no CDI1 box found.");
 
   return true; // OK!
 }
 
-*/
+
+
+const std::unique_ptr<IsoMCanonCmp1Box>&
+IsoMCanonCrawBox::CMP1() const {
+  if(cmp1Box)
+    return cmp1Box;
+  else
+    ThrowIPE("CMP1 box not available");
+}
+
+const std::unique_ptr<IsoMCanonCdi1Box>&
+IsoMCanonCrawBox::CDI1() const {
+  if(cdi1Box)
+    return cdi1Box;
+  else
+    ThrowIPE("CDI1 box not available");
+}
+
+
+
+IsoMCanonCmp1Box::IsoMCanonCmp1Box(const AbstractIsoMBox& base)
+  : IsoMBox(base) {
+  // Set position after box `size` and `boxtype` fields, so we
+  // can parse the custom SampleEntry ourself.
+  data.setPosition(8);
+  // This fields mainly used in the decoding process.
+  reserved1 = data.getU16();
+  headerSize = data.getU16();
+  assert(headerSize == 0x30);
+  version = data.getI32();
+  f_width = data.getI32();
+  f_height = data.getI32();
+  tileWidth = data.getI32();
+  tileHeight = data.getI32();
+  nBits = data.get<int8_t>();
+  nPlanes = data.peek<int8_t>() >> 4;
+  cfaLayout = data.get<int8_t>() & 0xF;
+  encType = data.peek<int8_t>() >> 4;
+  imageLevels = data.get<int8_t>() & 0xF;
+  hasTileCols = data.peek<int8_t>() >> 7;
+  hasTileRows =  data.get<int8_t>() & 1;
+  mdatHdrSize = data.getI32();
+  // Some reserved fields, unknown.
+  reserved2  = data.getI32();
+  for (auto& c : reserved3)
+    c = data.getByte();
+
+  // we assume this is fixed, until Canon makes CMP1 flexible
+  assert(data.getPosition() == 44+16);
+  // headerSize should match position
+  assert((data.getPosition() - 2 - 2 - 8) == headerSize);
+  assert(data.getRemainSize() == 0);
+
+
+
+}
+
+
+
+
+void IsoMCanonCdi1Box::parseBox(const AbstractIsoMBox& box) {
+  if (IsoMCanonIad1Box::BoxType == box.boxType) {
+    if (iad1Box)
+      ThrowIPE("duplicate IAD1 box found.");
+    iad1Box = AbstractIsoMBox::ParseBox<IsoMCanonIad1Box>(box);
+    return;
+  }
+}
+
+IsoMCanonCdi1Box::operator bool() const {
+  if (!iad1Box)
+    ThrowIPE("no IAD1 box found.");
+
+  return true; // OK!
+}
+
+const std::unique_ptr<IsoMCanonIad1Box>&
+IsoMCanonCdi1Box::IAD1() const {
+  if(iad1Box)
+    return iad1Box;
+  else
+    ThrowIPE("IAD1 box not available");
+}
 
 
 
 
 
+IsoMCanonIad1Box::IsoMCanonIad1Box(const AbstractIsoMBox& base)
+  : IsoMFullBox(base) {
+  // We ignore IAD1, not needed for decoding.
+
+  // Validate.
+  operator bool();
+}
 
 
+IsoMCanonIad1Box::operator bool() const {
+  // No fields yet to validate, IAD1 is unused for decoding.
 
+  return true; // OK!
+}
 
 
 
@@ -365,10 +496,13 @@ RawImage Cr3Decoder::decodeRawInternal() {
     FileWriter trak3_dscs_f("/tmp/test_trak3.dscs");
   trak3_dscs_f.writeFile(&dscs_data, dscs_data.getSize());
 
-  IsoMCanonCrawBox canonxx = IsoMCanonCrawBox(stsd->dscs[0]);
+  IsoMCanonCrawBox craw = IsoMCanonCrawBox(stsd->dscs[0]);
+
+  const auto& cmp1 = craw.CMP1();
+  const auto& cdi1 = craw.CDI1();
 
 
-
+  printf("Image size: %dx%d\n", cmp1->f_width, cmp1->f_height);
 
 
 

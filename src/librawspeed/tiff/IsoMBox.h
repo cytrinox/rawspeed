@@ -176,7 +176,16 @@ struct IsoMFullBox : public IsoMBox<type> {
   IsoMFullBox() = default;
   virtual ~IsoMFullBox() = default;
 
-  explicit IsoMFullBox(const AbstractIsoMBox& base);
+  explicit IsoMFullBox(const AbstractIsoMBox& base)
+  : IsoMBox<type>(base) {
+    // Highest 8 bits - version
+    version = BaseBox::data.peekByte();
+    // The rest, low 24 bits - flags
+    flags = BaseBox::data.getU32() & ((1U << 24U) - 1U);
+
+    if (expectedVersion() != version)
+      ThrowIPE("Unexpected version of FullBox - %u", expectedVersion());
+  }
 
   void parse(IsoMRootBox* root = nullptr) {}
 };

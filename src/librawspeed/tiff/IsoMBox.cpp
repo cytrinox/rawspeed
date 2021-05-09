@@ -46,6 +46,7 @@ AbstractIsoMBox::AbstractIsoMBox(ByteStream* bs) {
     data = bs->getStream(bs->getRemainSize());
   } else if (boxSize != 1) {
     bs->setPosition(origPos);
+    assert(bs->getRemainSize() >= boxSize);
     // The good case, this is the size of the box.
     data = bs->getStream(boxSize);
   } else {
@@ -61,6 +62,7 @@ AbstractIsoMBox::AbstractIsoMBox(ByteStream* bs) {
       ThrowIPE("IsoM Box uses largesize which does not fit into 32-bits");
 
     bs->setPosition(origPos);
+    assert(bs->getRemainSize() >= largeSize);
     data = bs->getStream(static_cast<Buffer::size_type>(largeSize));
     data.skipBytes(8); // skip the largeSize,
   }
@@ -71,18 +73,6 @@ AbstractIsoMBox::AbstractIsoMBox(ByteStream* bs) {
     const auto userTypeBs = data.getBuffer(16);
     std::copy(userTypeBs.begin(), userTypeBs.end(), userType.begin());
   }
-}
-
-template <const FourCharStr /* IsoMBoxTypes::* */& type>
-IsoMFullBox<type>::IsoMFullBox(const AbstractIsoMBox& base)
-    : IsoMBox<type>(base) {
-  // Highest 8 bits - version
-  version = BaseBox::data.peekByte();
-  // The rest, low 24 bits - flags
-  flags = BaseBox::data.getU32() & ((1U << 24U) - 1U);
-
-  if (expectedVersion() != version)
-    ThrowIPE("Unexpected version of FullBox - %u", expectedVersion());
 }
 
 void IsoMContainer::lexBox() { boxes.emplace_back(&cData); }

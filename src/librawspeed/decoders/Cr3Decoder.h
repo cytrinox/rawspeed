@@ -46,6 +46,9 @@ struct IsoMBoxCanonTypes final {
   static constexpr FourCharStr THMB = FourCharStr({'T', 'H', 'M', 'B'});
 
   static constexpr FourCharStr CRAW = FourCharStr({'C', 'R', 'A', 'W'});
+  static constexpr FourCharStr CMP1 = FourCharStr({'C', 'M', 'P', '1'});
+  static constexpr FourCharStr CDI1 = FourCharStr({'C', 'D', 'I', '1'});
+  static constexpr FourCharStr IAD1 = FourCharStr({'I', 'A', 'D', '1'});
 };
 
 
@@ -148,11 +151,31 @@ public:
 
 
 
-class IsoMCanonCrawBox final : public IsoMBox<IsoMBoxCanonTypes::CRAW> {
+
+
+class IsoMCanonCmp1Box final : public IsoMBox<IsoMBoxCanonTypes::CMP1> {
   //void parseBox(const AbstractIsoMBox& box) override;
   //explicit operator bool() const override;
 
 public:
+  uint16_t reserved1; // unknown, -1?
+  uint16_t headerSize;
+  int32_t version;
+  int32_t f_width;
+  int32_t f_height;
+  int32_t tileWidth;
+  int32_t tileHeight;
+  int8_t nBits;
+  int32_t nPlanes;
+  int32_t cfaLayout;
+  int32_t encType;
+  int32_t imageLevels;
+  int32_t hasTileCols;
+  int32_t hasTileRows;
+  int32_t mdatHdrSize;
+  int32_t reserved2; // unknown
+  std::array<uint8_t, 16> reserved3; // unknown
+
 /*
   std::unique_ptr<IsoMCanonCodecVersionBox> cncvBox;
   std::unique_ptr<IsoMCanonCCTPBox> cctpBox;
@@ -164,7 +187,7 @@ public:
   std::unique_ptr<IsoMCanonThumbnailBox> thmbBox;
   */
 
-  explicit IsoMCanonCrawBox(const AbstractIsoMBox& base);
+  explicit IsoMCanonCmp1Box(const AbstractIsoMBox& base);
 
   /*
   const std::unique_ptr<IsoMCanonCodecVersionBox>& CNCV() const;
@@ -181,7 +204,83 @@ public:
 
 
 
+class IsoMCanonIad1Box final : public IsoMFullBox<IsoMBoxCanonTypes::IAD1> {
+  //void parseBox(const AbstractIsoMBox& box) override;
+  explicit operator bool() const;
 
+public:
+  // IAD1 data is not required to decode the image.
+  // We skip parsing IAD1.
+
+  explicit IsoMCanonIad1Box(const AbstractIsoMBox& base);
+};
+
+
+
+class IsoMCanonCdi1Box final : public IsoMContainerBox<IsoMBoxCanonTypes::CDI1> {
+  void parseBox(const AbstractIsoMBox& box) override;
+  explicit operator bool() const override;
+public:
+  std::unique_ptr<IsoMCanonIad1Box> iad1Box;
+  explicit IsoMCanonCdi1Box(const AbstractIsoMBox& base)
+    : IsoMContainerBox<IsoMBoxCanonTypes::CDI1>(base) {}
+
+  const std::unique_ptr<IsoMCanonIad1Box>& IAD1() const;
+};
+
+
+
+class IsoMCanonCrawBox final : public IsoMBox<IsoMBoxCanonTypes::CRAW> {
+  //void parseBox(const AbstractIsoMBox& box) override;
+  explicit operator bool() const;
+
+public:
+
+  std::array<uint8_t, 6> reserved1;
+  uint16_t dataReferenceIndex;
+  std::array<uint8_t, 16> reserved2; // unknown, all zero
+  uint16_t width;
+  uint16_t height;
+  uint32_t xResolution; // stored as 0072 0000 fixed point
+  uint32_t yResolution; // stored as 0072 0000 fixed point
+  uint32_t reserved3; // unknown
+  uint16_t reserved4; // unknown
+  std::array<uint8_t, 32> reserved5; // unknown
+  uint16_t bitDepth;
+  uint16_t reserved6; // unknown
+  uint16_t flags; // unknown, 3 for Jpeg, 1 for craw/raw
+  uint16_t formatInd; // 0 for jpeg, 1 for craw/raw
+
+  std::unique_ptr<IsoMCanonCmp1Box> cmp1Box;
+  std::unique_ptr<IsoMCanonCdi1Box> cdi1Box;
+
+/*
+  std::unique_ptr<IsoMCanonCodecVersionBox> cncvBox;
+  std::unique_ptr<IsoMCanonCCTPBox> cctpBox;
+  std::unique_ptr<IsoMCanonCTBOBox> ctboBox;
+  std::unique_ptr<IsoMCanonCMT1Box> cmt1Box;
+  std::unique_ptr<IsoMCanonCMT2Box> cmt2Box;
+  std::unique_ptr<IsoMCanonCMT3Box> cmt3Box;
+  std::unique_ptr<IsoMCanonCMT4Box> cmt4Box;
+  std::unique_ptr<IsoMCanonThumbnailBox> thmbBox;
+  */
+
+  explicit IsoMCanonCrawBox(const AbstractIsoMBox& base);
+
+  const std::unique_ptr<IsoMCanonCmp1Box>& CMP1() const;
+  const std::unique_ptr<IsoMCanonCdi1Box>& CDI1() const;
+
+  /*
+  const std::unique_ptr<IsoMCanonCodecVersionBox>& CNCV() const;
+  const std::unique_ptr<IsoMCanonCCTPBox>& CCTP() const;
+  const std::unique_ptr<IsoMCanonCTBOBox>& CTBO() const;
+  const std::unique_ptr<IsoMCanonCMT1Box>& CMT1() const;
+  const std::unique_ptr<IsoMCanonCMT2Box>& CMT2() const;
+  const std::unique_ptr<IsoMCanonCMT3Box>& CMT3() const;
+  const std::unique_ptr<IsoMCanonCMT4Box>& CMT4() const;
+  const std::unique_ptr<IsoMCanonThumbnailBox>& THMB() const;
+  */
+};
 
 
 
