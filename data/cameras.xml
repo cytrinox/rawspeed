@@ -437,6 +437,23 @@
 				<Hint name="invert_sraw_wb" value=""/>
 			</Hints>
 		</Camera>
+	<Camera make="Canon" model="Canon EOS 90D">
+		<ID make="Canon" model="EOS 90D">Canon EOS 90D</ID>
+		<CFA width="2" height="2">
+			<Color x="0" y="0">RED</Color>
+			<Color x="1" y="0">GREEN</Color>
+			<Color x="0" y="1">GREEN</Color>
+			<Color x="1" y="1">BLUE</Color>
+		</CFA>
+		<Sensor black="2049" white="13660"/>
+		<Sensor black="512" white="13036" iso_list="100 125"/>
+		<Sensor black="512" white="10852" iso_list="160"/>
+		<Sensor black="512" white="13660" iso_list="200 250"/>
+		<Sensor black="2049" white="10852" iso_list="320 640 1250 2500 5000 10000 20000"/>
+		<Hints>
+			<Hint name="wb_offset" value="71"/>
+		</Hints>
+	</Camera>
 	<Camera make="Canon" model="Canon EOS 700D">
 		<ID make="Canon" model="EOS 700D">Canon EOS 700D</ID>
 		<CFA width="2" height="2">
