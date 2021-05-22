@@ -190,7 +190,7 @@ enum TileFlags {
   E_HAS_TILES_ON_THE_TOP = 8
 };
 
-int32_t exCoefNumTbl[144] = {
+static int32_t exCoefNumTbl[144] = {
     1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
     1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0,
     1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 2, 2, 1, 0, 0, 1, 1, 1, 1, 0, 0,
@@ -198,14 +198,14 @@ int32_t exCoefNumTbl[144] = {
     1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 2, 2, 2, 2, 1, 1, 1, 1, 2, 2, 1,
     1, 1, 1, 2, 2, 1, 1, 0, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1};
 
-int32_t q_step_tbl[8] = {0x28, 0x2D, 0x33, 0x39, 0x40, 0x48};
+static int32_t q_step_tbl[8] = {0x28, 0x2D, 0x33, 0x39, 0x40, 0x48};
 
-uint32_t JS[32] = {1,     1,     1,     1,     2,      2,      2,      2,
+static uint32_t JS[32] = {1,     1,     1,     1,     2,      2,      2,      2,
                    4,     4,     4,     4,     8,      8,      8,      8,
                    0x10,  0x10,  0x20,  0x20,  0x40,   0x40,   0x80,   0x80,
                    0x100, 0x200, 0x400, 0x800, 0x1000, 0x2000, 0x4000, 0x8000};
 
-uint32_t J[32] = {0, 0, 0, 0, 1,    1,    1,    1,    2,    2,   2,
+static uint32_t J[32] = {0, 0, 0, 0, 1,    1,    1,    1,    2,    2,   2,
                   2, 3, 3, 3, 3,    4,    4,    5,    5,    6,   6,
                   7, 7, 8, 9, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F};
 
@@ -221,7 +221,7 @@ static inline void crxFillBuffer(CrxBitstream* bitStrm) {
 
     if (sub.getSize() >= bytesToRead) {
       auto data = sub.getData(0, bytesToRead);
-      assert(bitStrm->mdatBuf.size() > 0);
+      assert(!bitStrm->mdatBuf.empty());
       ::memcpy(bitStrm->mdatBuf.data(), data, bytesToRead);
       bitStrm->curBufSize = bytesToRead;
     }
@@ -244,7 +244,7 @@ inline int crxBitstreamGetZeros(CrxBitstream* bitStrm) {
     bitStrm->bitsLeft -= 32 - nonZeroBit;
   } else {
     uint32_t bitsLeft = bitStrm->bitsLeft;
-    while (1) {
+    while (true) {
       while (bitStrm->curPos + 4 <= bitStrm->curBufSize) {
         nextData = getByteSwapped(
             *(uint32_t*)(bitStrm->mdatBuf.data() + bitStrm->curPos));
@@ -366,7 +366,7 @@ inline void crxDecodeSymbolL1(CrxBandParam* param, int32_t doMedianPrediction,
   ++param->lineBuf1;
 }
 
-int crxDecodeLine(CrxBandParam* param) {
+static int crxDecodeLine(CrxBandParam* param) {
   int length = param->subbandWidth;
 
   param->lineBuf1[0] = param->lineBuf0[1];
@@ -450,14 +450,15 @@ inline void crxDecodeSymbolL1Rounded(CrxBandParam* param, int32_t doSym = 1,
   param->lineBuf1[1] = param->roundedBitsMask * 2 * code + (code >> 31) + sym;
 
   if (doCode) {
-    if (param->lineBuf0[2] > param->lineBuf0[1])
+    if (param->lineBuf0[2] > param->lineBuf0[1]) {
       code = (param->lineBuf0[2] - param->lineBuf0[1] + param->roundedBitsMask -
               1) >>
              param->roundedBits;
-    else
+    } else {}
       code = -(
           (param->lineBuf0[1] - param->lineBuf0[2] + param->roundedBitsMask) >>
           param->roundedBits);
+    }
 
     param->kParam = crxPredictKParameter(param->kParam,
                                          (bitCode + 2 * _abs(code)) >> 1, 15);
@@ -467,7 +468,7 @@ inline void crxDecodeSymbolL1Rounded(CrxBandParam* param, int32_t doSym = 1,
   ++param->lineBuf1;
 }
 
-int crxDecodeLineRounded(CrxBandParam* param) {
+static int crxDecodeLineRounded(CrxBandParam* param) {
   int32_t valueReached = 0;
 
   param->lineBuf0[0] = param->lineBuf0[1];
@@ -537,7 +538,7 @@ int crxDecodeLineRounded(CrxBandParam* param) {
   return 0;
 }
 
-int crxDecodeLineNoRefPrevLine(CrxBandParam* param) {
+static int crxDecodeLineNoRefPrevLine(CrxBandParam* param) {
   int32_t i = 0;
 
   for (; i < param->subbandWidth - 1; i++) {
@@ -635,7 +636,7 @@ int crxDecodeLineNoRefPrevLine(CrxBandParam* param) {
   return 0;
 }
 
-int crxDecodeTopLine(CrxBandParam* param) {
+static int crxDecodeTopLine(CrxBandParam* param) {
   param->lineBuf1[0] = 0;
 
   int32_t length = param->subbandWidth;
@@ -712,7 +713,7 @@ int crxDecodeTopLine(CrxBandParam* param) {
   return 0;
 }
 
-int crxDecodeTopLineRounded(CrxBandParam* param) {
+static int crxDecodeTopLineRounded(CrxBandParam* param) {
   param->lineBuf1[0] = 0;
 
   int32_t length = param->subbandWidth;
@@ -791,7 +792,7 @@ int crxDecodeTopLineRounded(CrxBandParam* param) {
   return 0;
 }
 
-int crxDecodeTopLineNoRefPrevLine(CrxBandParam* param) {
+static int crxDecodeTopLineNoRefPrevLine(CrxBandParam* param) {
   param->lineBuf0[0] = 0;
   param->lineBuf1[0] = 0;
   int32_t length = param->subbandWidth;
@@ -874,7 +875,7 @@ int crxDecodeTopLineNoRefPrevLine(CrxBandParam* param) {
   return 0;
 }
 
-int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
+static int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
   if (!param || !bandBuf)
     return -1;
   if (param->curLine >= param->subbandHeight)
@@ -887,7 +888,7 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
     param->kParam = 0;
     if (param->supportsPartial) {
       if (param->roundedBitsMask <= 0) {
-        param->lineBuf0 = (int32_t*)param->paramData;
+        param->lineBuf0 = param->paramData;
         param->lineBuf1 = param->lineBuf0 + lineLength;
         int32_t* lineBuf = param->lineBuf1 + 1;
         if (crxDecodeTopLine(param))
@@ -900,7 +901,7 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
           while (param->roundedBitsMask >> param->roundedBits)
             ++param->roundedBits;
         }
-        param->lineBuf0 = (int32_t*)param->paramData;
+        param->lineBuf0 = param->paramData;
         param->lineBuf1 = param->lineBuf0 + lineLength;
         int32_t* lineBuf = param->lineBuf1 + 1;
         if (crxDecodeTopLineRounded(param))
@@ -909,8 +910,8 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
         ++param->curLine;
       }
     } else {
-      param->lineBuf2 = (int32_t*)param->nonProgrData;
-      param->lineBuf0 = (int32_t*)param->paramData;
+      param->lineBuf2 = param->nonProgrData;
+      param->lineBuf0 = param->paramData;
       param->lineBuf1 = param->lineBuf0 + lineLength;
       int32_t* lineBuf = param->lineBuf1 + 1;
       if (crxDecodeTopLineNoRefPrevLine(param))
@@ -920,12 +921,12 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
     }
   } else if (!param->supportsPartial) {
     int32_t lineLength = param->subbandWidth + 2;
-    param->lineBuf2 = (int32_t*)param->nonProgrData;
+    param->lineBuf2 = param->nonProgrData;
     if (param->curLine & 1) {
-      param->lineBuf1 = (int32_t*)param->paramData;
+      param->lineBuf1 = param->paramData;
       param->lineBuf0 = param->lineBuf1 + lineLength;
     } else {
-      param->lineBuf0 = (int32_t*)param->paramData;
+      param->lineBuf0 = param->paramData;
       param->lineBuf1 = param->lineBuf0 + lineLength;
     }
     int32_t* lineBuf = param->lineBuf1 + 1;
@@ -936,10 +937,10 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
   } else if (param->roundedBitsMask <= 0) {
     int32_t lineLength = param->subbandWidth + 2;
     if (param->curLine & 1) {
-      param->lineBuf1 = (int32_t*)param->paramData;
+      param->lineBuf1 = param->paramData;
       param->lineBuf0 = param->lineBuf1 + lineLength;
     } else {
-      param->lineBuf0 = (int32_t*)param->paramData;
+      param->lineBuf0 = param->paramData;
       param->lineBuf1 = param->lineBuf0 + lineLength;
     }
     int32_t* lineBuf = param->lineBuf1 + 1;
@@ -950,10 +951,10 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
   } else {
     int32_t lineLength = param->subbandWidth + 2;
     if (param->curLine & 1) {
-      param->lineBuf1 = (int32_t*)param->paramData;
+      param->lineBuf1 = param->paramData;
       param->lineBuf0 = param->lineBuf1 + lineLength;
     } else {
-      param->lineBuf0 = (int32_t*)param->paramData;
+      param->lineBuf0 = param->paramData;
       param->lineBuf1 = param->lineBuf0 + lineLength;
     }
     int32_t* lineBuf = param->lineBuf1 + 1;
@@ -965,7 +966,7 @@ int crxDecodeLine(CrxBandParam* param, uint8_t* bandBuf) {
   return 0;
 }
 
-int crxUpdateQparam(CrxSubband* subband) {
+static int crxUpdateQparam(CrxSubband* subband) {
   uint32_t bitCode = crxBitstreamGetZeros(&subband->bandParam->bitStream);
   if (bitCode >= 23)
     bitCode = crxBitstreamGetBits(&subband->bandParam->bitStream, 8);
@@ -989,7 +990,8 @@ inline int getSubbandRow(CrxSubband* band, int row) {
                                           : band->height - band->rowEndAddOn -
                                                 band->rowStartAddOn - 1);
 }
-int crxDecodeLineWithIQuantization(CrxSubband* band, CrxQStep* qStep) {
+
+static int crxDecodeLineWithIQuantization(CrxSubband* band, CrxQStep* qStep) {
   if (!band->dataSize) {
     memset(band->bandBuf, 0, band->bandSize);
     return 0;
@@ -1047,7 +1049,7 @@ int crxDecodeLineWithIQuantization(CrxSubband* band, CrxQStep* qStep) {
   return 0;
 }
 
-void crxHorizontal53(int32_t* lineBufLA, int32_t* lineBufLB,
+static void crxHorizontal53(int32_t* lineBufLA, int32_t* lineBufLB,
                      CrxWaveletTransform* wavelet, uint32_t tileFlag) {
   int32_t* band0Buf = wavelet->subband0Buf;
   int32_t* band1Buf = wavelet->subband1Buf;
@@ -1114,7 +1116,7 @@ void crxHorizontal53(int32_t* lineBufLA, int32_t* lineBufLB,
   }
 }
 
-int32_t* crxIdwt53FilterGetLine(CrxPlaneComp* comp, int32_t level) {
+static int32_t* crxIdwt53FilterGetLine(CrxPlaneComp* comp, int32_t level) {
   int32_t* result =
       comp->wvltTransform[level].lineBuf[(comp->wvltTransform[level].fltTapH -
                                           comp->wvltTransform[level].curH + 5) %
@@ -1124,12 +1126,12 @@ int32_t* crxIdwt53FilterGetLine(CrxPlaneComp* comp, int32_t level) {
   return result;
 }
 
-int crxIdwt53FilterDecode(CrxPlaneComp* comp, int32_t level, CrxQStep* qStep) {
+static int crxIdwt53FilterDecode(CrxPlaneComp* comp, int32_t level, CrxQStep* qStep) {
   if (comp->wvltTransform[level].curH)
     return 0;
 
   CrxSubband* sband = comp->subBands + 3 * level;
-  CrxQStep* qStepLevel = qStep ? qStep + level : 0;
+  CrxQStep* qStepLevel = qStep ? qStep + level : NULL;
 
   if (comp->wvltTransform[level].height - 3 <=
           comp->wvltTransform[level].curLine &&
