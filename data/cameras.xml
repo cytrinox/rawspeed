@@ -142,6 +142,9 @@
 		<Sensor black="2049" white="14338"/>
 		<Sensor black="511" white="11606" iso_list="100"/>
 		<Sensor black="511" white="14338" iso_list="200"/>
+		<Aliases>
+			<Alias id="EOS Rebel SL3">Canon EOS Rebel SL3</Alias>
+		</Aliases>
 		<Hints>
 			<Hint name="wb_offset" value="71"/>
 		</Hints>
