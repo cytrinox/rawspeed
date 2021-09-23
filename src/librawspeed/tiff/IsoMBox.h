@@ -57,7 +57,7 @@ struct FourCharStr final {
     return std::string(data.begin(), data.end());
   }
 
-  std::string str() const { return static_cast<std::string>(*this); }
+  [[nodiscard]] std::string str() const { return static_cast<std::string>(*this); }
 };
 inline bool operator==(const FourCharStr& lhs, const FourCharStr& rhs) {
   return lhs.data == rhs.data;
@@ -134,7 +134,7 @@ public:
 
   explicit IsoMContainer(ByteStream* bs);
 
-  const AbstractIsoMBox& getBox(const AbstractIsoMBox::UuidType& uuid) const;
+  [[nodiscard]] const AbstractIsoMBox& getBox(const AbstractIsoMBox::UuidType& uuid) const;
 
   // !!! DO NOT CALL FROM CONSTRUCTOR !!!
   void parse(IsoMRootBox* root = nullptr) {
@@ -171,7 +171,7 @@ struct IsoMFullBox : public IsoMBox<type> {
   uint8_t version;
   uint32_t flags : 24;
 
-  uint8_t expectedVersion() const { return 0; }
+  [[nodiscard]] uint8_t expectedVersion() const { return 0; }
 
   IsoMFullBox() = default;
   virtual ~IsoMFullBox() = default;
@@ -402,9 +402,9 @@ public:
   std::unique_ptr<IsoMMovieBox> moovBox;
   std::unique_ptr<IsoMMediaDataBox> mdatBox;
 
-  const std::unique_ptr<IsoMFileTypeBox>& ftyp() const;
-  const std::unique_ptr<IsoMMovieBox>& moov() const;
-  const std::unique_ptr<IsoMMediaDataBox>& mdat() const;
+  [[nodiscard]] const std::unique_ptr<IsoMFileTypeBox>& ftyp() const;
+  [[nodiscard]] const std::unique_ptr<IsoMMovieBox>& moov() const;
+  [[nodiscard]] const std::unique_ptr<IsoMMediaDataBox>& mdat() const;
 
   explicit IsoMRootBox(ByteStream* bs) : IsoMContainer(bs) {}
 };

@@ -558,7 +558,7 @@ RawImage Cr3Decoder::decodeRawInternal() {
   return mRaw;
 }
 
-bool Cr3Decoder::isCodecSupported(const std::string& compressorVersion) const {
+static bool Cr3Decoder::isCodecSupported(const std::string& compressorVersion) {
   if (compressorVersion == "CanonHEIF001/10.00.00/00.00.00"
    || compressorVersion == "CanonHEIF001/10.00.01/00.00.00") {
     writeLog(DEBUG_PRIO_WARNING, "HEIF CNCV: '%s' is not supported",
@@ -628,9 +628,11 @@ void Cr3Decoder::decodeMetaDataInternal(const CameraMetaData* meta) {
     // ISOSPEEDRATINGS is a SHORT EXIF value. For larger values, we have to look
     // at RECOMMENDED_EXPOSURE_INDEX (maybe Canon specific).
     if (canonBox->CMT2()->mRootIFD0->hasEntryRecursive(RECOMMENDEDEXPOSUREINDEX))
+    {
       iso = canonBox->CMT2()
               ->mRootIFD0->getEntryRecursive(RECOMMENDEDEXPOSUREINDEX)
               ->getU32();
+    }
   }
 
   // Big raw image is always in track 4
@@ -647,7 +649,7 @@ void Cr3Decoder::decodeMetaDataInternal(const CameraMetaData* meta) {
 
   // CTMD MDAT
   assert(!track3Mdia->minf->stbl->chunks.empty());
-  auto ctmd_chunk = track3Mdia->minf->stbl->chunks[0];
+  const auto *ctmd_chunk = track3Mdia->minf->stbl->chunks[0];
 
   Buffer ctmd_chunk_buf = ctmd_chunk->getSubView(0);
 
@@ -717,8 +719,8 @@ void Cr3Decoder::decodeMetaDataInternal(const CameraMetaData* meta) {
       topOpticalBlack.pos.y += 12;
       topOpticalBlack.dim.y -= 12;
     }
-    mRaw->blackAreas.push_back(BlackArea(leftOpticalBlack.pos.x, leftOpticalBlack.dim.x, true));
-    mRaw->blackAreas.push_back(BlackArea(topOpticalBlack.pos.y, topOpticalBlack.pos.y, false));
+    mRaw->blackAreas.emplace_back(BlackArea(leftOpticalBlack.pos.x, leftOpticalBlack.dim.x, true));
+    mRaw->blackAreas.emplace_back(BlackArea(topOpticalBlack.pos.y, topOpticalBlack.pos.y, false));
   }
 
   if (applyCrop) {

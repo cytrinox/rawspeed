@@ -32,26 +32,6 @@
 namespace rawspeed {
 
 
-// The ODR-definitions
-
-const FourCharStr IsoMBoxTypes::ftyp;
-const FourCharStr IsoMBoxTypes::co64;
-const FourCharStr IsoMBoxTypes::stsz;
-const FourCharStr IsoMBoxTypes::stsc;
-const FourCharStr IsoMBoxTypes::stsd;
-const FourCharStr IsoMBoxTypes::stbl;
-const FourCharStr IsoMBoxTypes::url;
-const FourCharStr IsoMBoxTypes::dref;
-const FourCharStr IsoMBoxTypes::dinf;
-const FourCharStr IsoMBoxTypes::minf;
-const FourCharStr IsoMBoxTypes::mdia;
-const FourCharStr IsoMBoxTypes::trak;
-const FourCharStr IsoMBoxTypes::moov;
-const FourCharStr IsoMBoxTypes::mdat;
-
-const FourCharStr IsoMBoxTypes::uuid;
-
-
 // Base-level lexing/parsing.
 
 AbstractIsoMBox::AbstractIsoMBox(ByteStream* bs) {
@@ -128,7 +108,6 @@ IsoMContainer::getBox(const AbstractIsoMBox::UuidType& uuid) const {
 
 // FileType box parsing.
 
-const std::array<const FourCharStr, 1> IsoMFileTypeBox::supportedBrands;
 IsoMFileTypeBox::operator bool() const {
   if (std::find(supportedBrands.begin(), supportedBrands.end(), majorBrand) ==
       supportedBrands.end())
@@ -217,7 +196,7 @@ IsoMSampleToChunkBox::IsoMSampleToChunkBox(const AbstractIsoMBox& base)
     : IsoMFullBox(base) {
   const auto entryCount = data.getU32();
 
-  data.check(entryCount, 3 * 4);
+  (void)data.check(entryCount, 3 * 4);
   dscs.reserve(entryCount);
   std::generate_n(std::back_inserter(dscs), entryCount, [this]() {
     Dsc d;
@@ -278,7 +257,7 @@ IsoMChunkLargeOffsetBox::operator bool() const {
 IsoMChunkLargeOffsetBox::IsoMChunkLargeOffsetBox(const AbstractIsoMBox& base)
     : IsoMFullBox(base) {
   const auto entryCount = data.getU32();
-  data.check(entryCount, 8);
+  (void)data.check(entryCount, 8);
 
   if (entryCount != 1)
     ThrowIPE("Don't know how to handle co64 box with %u entries", entryCount);
@@ -525,8 +504,8 @@ void IsoMMediaDataBox::parse(IsoMRootBox* root) {
     unsigned i = 0;
     // Just count them all.
     forEachChunk(
-        [&i](Buffer::size_type, Buffer::size_type,
-             std::back_insert_iterator<std::vector<const ByteStream*>>) {
+        [&i](Buffer::size_type offset, Buffer::size_type count,
+             std::back_insert_iterator<std::vector<const ByteStream*>> chunk) {
           i++;
         });
     return i;
@@ -599,20 +578,17 @@ IsoMRootBox::operator bool() const {
 const std::unique_ptr<IsoMFileTypeBox>& IsoMRootBox::ftyp() const {
   if(ftypBox)
     return ftypBox;
-  else
-    ThrowIPE("ftyp box not available");
+  ThrowIPE("ftyp box not available");
 }
 const std::unique_ptr<IsoMMovieBox>& IsoMRootBox::moov() const {
   if(moovBox)
     return moovBox;
-  else
-    ThrowIPE("moov box not available");
+  ThrowIPE("moov box not available");
 }
 const std::unique_ptr<IsoMMediaDataBox>& IsoMRootBox::mdat() const {
   if(mdatBox)
     return mdatBox;
-  else
-    ThrowIPE("mdat box not available");
+  ThrowIPE("mdat box not available");
 }
 
 
