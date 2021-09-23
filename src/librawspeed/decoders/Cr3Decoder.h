@@ -140,14 +140,14 @@ public:
   explicit IsoMCanonBox(const AbstractIsoMBox& base)
       : IsoMContainerBox(base) {}
 
-  const std::unique_ptr<IsoMCanonCodecVersionBox>& CNCV() const;
-  const std::unique_ptr<IsoMCanonCCTPBox>& CCTP() const;
-  const std::unique_ptr<IsoMCanonCTBOBox>& CTBO() const;
-  const std::unique_ptr<IsoMCanonCMT1Box>& CMT1() const;
-  const std::unique_ptr<IsoMCanonCMT2Box>& CMT2() const;
-  const std::unique_ptr<IsoMCanonCMT3Box>& CMT3() const;
-  const std::unique_ptr<IsoMCanonCMT4Box>& CMT4() const;
-  const std::unique_ptr<IsoMCanonThumbnailBox>& THMB() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCodecVersionBox>& CNCV() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCCTPBox>& CCTP() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCTBOBox>& CTBO() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCMT1Box>& CMT1() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCMT2Box>& CMT2() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCMT3Box>& CMT3() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCMT4Box>& CMT4() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonThumbnailBox>& THMB() const;
 };
 
 
@@ -229,11 +229,11 @@ public:
 
   explicit IsoMCanonIad1Box(const AbstractIsoMBox& base);
 
-  iRectangle2D sensorRect() const;
-  iRectangle2D cropRect() const;
-  iRectangle2D leftOpticalBlackRect() const;
-  iRectangle2D topOpticalBlackRect() const;
-  iRectangle2D activeArea() const;
+  [[nodiscard]] iRectangle2D sensorRect() const;
+  [[nodiscard]] iRectangle2D cropRect() const;
+  [[nodiscard]] iRectangle2D leftOpticalBlackRect() const;
+  [[nodiscard]] iRectangle2D topOpticalBlackRect() const;
+  [[nodiscard]] iRectangle2D activeArea() const;
 };
 
 
@@ -247,7 +247,7 @@ public:
     : IsoMContainerFullBox<IsoMBoxCanonTypes::CDI1>(base) {
     }
 
-  const std::unique_ptr<IsoMCanonIad1Box>& IAD1() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonIad1Box>& IAD1() const;
 };
 
 
@@ -277,8 +277,8 @@ public:
 
   explicit IsoMCanonCrawBox(const AbstractIsoMBox& base);
 
-  const std::unique_ptr<IsoMCanonCmp1Box>& CMP1() const;
-  const std::unique_ptr<IsoMCanonCdi1Box>& CDI1() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCmp1Box>& CMP1() const;
+  [[nodiscard]] const std::unique_ptr<IsoMCanonCdi1Box>& CDI1() const;
 };
 
 
@@ -343,17 +343,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
 class Cr3Decoder final : public RawDecoder {
   std::unique_ptr<const IsoMRootBox> rootBox;
   std::unique_ptr<IsoMCanonBox> canonBox;
@@ -374,8 +363,8 @@ public:
   void decodeMetaDataInternal(const CameraMetaData* meta) override;
 
 protected:
-  int getDecoderVersion() const override { return 0; }
-  bool isCodecSupported(const std::string& compressorVersion) const;
+  [[nodiscard]] int getDecoderVersion() const override { return 0; }
+  static bool isCodecSupported(const std::string& compressorVersion);
 };
 
 } // namespace rawspeed

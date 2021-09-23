@@ -36,16 +36,16 @@ class CrxDecompressor final : public AbstractDecompressor {
   RawImage mRaw;
 
 public:
-  CrxDecompressor(const RawImage& img);
+  explicit CrxDecompressor(const RawImage& img);
 
   void decode(const IsoMCanonCmp1Box& cmp1Box, Buffer& crxRawData);
 
 private:
-  int crxDecodePlane(void* p, uint32_t planeNumber);
-  void crxLoadDecodeLoop(void* img, int nPlanes);
+  static int crxDecodePlane(void* p, uint32_t planeNumber);
+  static void crxLoadDecodeLoop(void* img, int nPlanes);
   int crxParseImageHeader(uint8_t* cmp1TagData, int nTrack);
-  void crxConvertPlaneLineDf(void* p, int imageRow);
-  void crxLoadFinalizeLoopE3(void* p, int planeHeight);
+  static void crxConvertPlaneLineDf(void* p, int imageRow);
+  static void crxLoadFinalizeLoopE3(void* p, int planeHeight);
 };
 
 } // namespace rawspeed
